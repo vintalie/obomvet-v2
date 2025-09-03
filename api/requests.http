@@ -1,0 +1,41 @@
+GET http://localhost:8000/api/usuarios
+Accept: application/json
+Content-Type: application/json
+###
+
+POST http://localhost:8000/api/usuarios
+Accept: application/json
+Content-Type: application/json
+
+{
+    "name": "Lucas amazonia"
+}
+###
+POST http://localhost:8000/api/auth/register
+Accept: application/json
+Content-Type: application/json
+
+{
+    "name":"jose severino",
+    "email":"ze@gmail.com",
+    "password":"zedamanga8684",
+    "tipo":"admin"
+}
+
+###
+
+POST http://localhost:8000/api/auth/login
+Accept: application/json
+Content-Type: application/json
+
+{
+    "email":"ze@gmail.com",
+    "password":"zedamanga8684"
+}
+
+###
+
+GET http://localhost:8000/api/usuarios/2
+Accept: application/json
+Authorization: Bearer 12|ioQcKX0OvDagzf4JVhfWZhvCNKvJj7GSXZwASVWf269d691e
+Content-Type: application/json
