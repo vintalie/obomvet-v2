@@ -13,6 +13,7 @@ class Veterinario extends Model
         'user_id',
         'nome_completo',
         'crmv',
+        'localizacao',
         'especialidade',
         'telefone_emergencia',
         'disponivel_24h',
