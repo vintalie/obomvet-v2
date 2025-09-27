@@ -27,7 +27,7 @@ Route::group(['as' => 'api.'], function() {
     )->middleware(['auth:sanctum']);
     
     Orion::resource(
-        name: '/tutores',
+        name: '/tutors',
         controller: TutorController::class
     )->middleware('auth:sanctum');
     

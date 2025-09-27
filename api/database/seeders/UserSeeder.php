@@ -13,8 +13,8 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Usuários tutores
-        $tutores = [
+        // Usuários tutors
+        $tutors = [
             [
                 'name' => 'João Silva',
                 'email' => 'joao@email.com',
@@ -76,6 +76,6 @@ class UserSeeder extends Seeder
         ];
 
         // Inserir todos os usuários
-        DB::table('users')->insert(array_merge($tutores, $veterinarios));
+        DB::table('users')->insert(array_merge($tutors, $veterinarios));
     }
 }

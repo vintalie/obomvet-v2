@@ -24,7 +24,7 @@ class Pet extends Model
         'data_nascimento' => 'date',
     ];
 
-    public function tutores()
+    public function tutors()
     {
         return $this->belongsToMany(Tutor::class, 'tutor_pet');
     }
