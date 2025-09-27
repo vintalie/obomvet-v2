@@ -5,7 +5,6 @@ namespace App\Policies;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use App\Models\Usuario;
-use App\Models\User;
 
 class UsuarioPolicy
 {
@@ -32,7 +31,8 @@ class UsuarioPolicy
      */
     public function create(Usuario $user): bool
     {
-        return $user->tipo === 'admin'  || $user->tipo === 'admin';;
+        return $user->tipo === 'admin';
+
     }
 
     /**
