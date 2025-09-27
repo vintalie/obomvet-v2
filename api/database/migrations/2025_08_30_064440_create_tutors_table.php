@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('tutors', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('usuario_id')->constrained()->onDelete('cascade');
             $table->string('nome_completo');
             $table->string('telefone_principal');
             $table->string('telefone_alternativo')->nullable();

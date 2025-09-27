@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('veterinarios', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('usuario_id')->constrained()->onDelete('cascade');
             $table->string('nome_completo');
             $table->string('crmv')->unique();
             $table->string('especialidade')->nullable();
