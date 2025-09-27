@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\Hash;
 class AutenticadorController extends Controller
 {
     public function register(Request $request){
+        $registerUserData = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:usuarios',
+            'password' => 'required|string|min:8',
+            'tipo' => 'required|in:tutor,veterinario,admin',
+        ]);
         $registerUserData = [];
         $userData = [];
         
@@ -24,7 +30,7 @@ class AutenticadorController extends Controller
                     'nome_completo' => 'required|string|max:255',
                     'telefone_principal' => 'required|string|max:20',
                     'telefone_alternativo' => 'nullable|string|max:20',
-                    'cpf' => 'required|string|size:11|unique:tutors,cpf',
+                    'cpf' => 'required|string|size:11|unique:tutores,cpf',
                 ]);
                 break;
             case 'veterinario':
@@ -82,7 +88,31 @@ class AutenticadorController extends Controller
             ]);
 
         }
+
+        
+        
+        if($request->tipo == 'tutor'){
+            $userData = $user->tutor()->create([
+                    'nome_completo' => $registerUserData['nome_completo'],
+                    'telefone_principal' => $registerUserData['telefone_principal'],
+                    'telefone_alternativo' => $registerUserData['telefone_alternativo'] ?? null,
+                    'cpf' => $registerUserData['cpf']
+                ]
+            );
+        } elseif ($request->tipo == 'veterinario'){
+            $userData = $user->veterinario()->create([
+                    'nome_completo' => $registerUserData['nome_completo'],
+                    'crmv' => $registerUserData['crmv'],
+                    'localizacao' => $registerUserData['localizacao'],
+                    'especialidade' => $registerUserData['especialidade'],
+                    'telefone_emergencia' => $registerUserData['telefone_emergencia'],
+                    'disponivel_24h' => $registerUserData['disponivel_24h'],
+            ]);
+
+        }
         return response()->json([
+            'message' => 'User Created',
+            'usuario' => $user->with($user->tipo)->find($user->id),
             'message' => 'User Created',
             'usuario' => $user->with($user->tipo)->find($user->id),
         ]);
