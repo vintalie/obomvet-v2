@@ -11,20 +11,80 @@ use Illuminate\Support\Facades\Hash;
 class AutenticadorController extends Controller
 {
     public function register(Request $request){
-        $registerUserData = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-            'tipo' => 'required|in:tutor,veterinario,admin',
-        ]);
+        $registerUserData = [];
+        $userData = [];
+        
+        switch ($request->tipo) {
+            case 'tutor':
+                $registerUserData = $request->validate([
+                    'name' => 'required|string|max:255',
+                    'email' => 'required|string|email|max:255|unique:usuarios',
+                    'password' => 'required|string|min:8',
+                    'tipo' => 'required|in:tutor,veterinario,admin',
+                    'nome_completo' => 'required|string|max:255',
+                    'telefone_principal' => 'required|string|max:20',
+                    'telefone_alternativo' => 'nullable|string|max:20',
+                    'cpf' => 'required|string|size:11|unique:tutores,cpf',
+                ]);
+                break;
+            case 'veterinario':
+                $registerUserData = $request->validate([
+                    'name' => 'required|string|max:255',
+                    'email' => 'required|string|email|max:255|unique:usuarios',
+                    'password' => 'required|string|min:8',
+                    'tipo' => 'required|in:tutor,veterinario,admin',
+                    'crmv' => 'required|string|unique:veterinarios,crmv',
+                    'nome_completo' => 'required|string|max:255',
+                    'localizacao' => 'required|string|max:255',
+                    'especialidade' => 'required|string|max:255',
+                    'telefone_emergencia' => 'required|string|max:20',
+                    'disponivel_24h' => 'required|boolean',
+                ]);
+                break;
+            default:
+                $registerUserData = $request->validate([
+                    'name' => 'required|string|max:255',
+                    'email' => 'required|string|email|max:255|unique:usuarios',
+                    'password' => 'required|string|min:8',
+                    'tipo' => 'required|in:tutor,veterinario,admin',
+                ]);
+                break;
+        }
+
+
+
+
         $user = Usuario::create([
             'name' => $registerUserData['name'],
             'email' => $registerUserData['email'],
             'password' => Hash::make($registerUserData['password']),
             'tipo' => $registerUserData['tipo'],
         ]);
+
+        
+        
+        if($request->tipo == 'tutor'){
+            $userData = $user->tutor()->create([
+                    'nome_completo' => $registerUserData['nome_completo'],
+                    'telefone_principal' => $registerUserData['telefone_principal'],
+                    'telefone_alternativo' => $registerUserData['telefone_alternativo'] ?? null,
+                    'cpf' => $registerUserData['cpf']
+                ]
+            );
+        } elseif ($request->tipo == 'veterinario'){
+            $userData = $user->veterinario()->create([
+                    'nome_completo' => $registerUserData['nome_completo'],
+                    'crmv' => $registerUserData['crmv'],
+                    'localizacao' => $registerUserData['localizacao'],
+                    'especialidade' => $registerUserData['especialidade'],
+                    'telefone_emergencia' => $registerUserData['telefone_emergencia'],
+                    'disponivel_24h' => $registerUserData['disponivel_24h'],
+            ]);
+
+        }
         return response()->json([
-            'message' => 'User Created ',
+            'message' => 'User Created',
+            'usuario' => $user->with($user->tipo)->find($user->id),
         ]);
     }
 
