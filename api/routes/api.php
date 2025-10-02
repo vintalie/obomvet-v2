@@ -7,7 +7,8 @@ use App\Http\Controllers\{
     PetController,
     VeterinarioController,
     EmergenciaController,
-    HistoricoAtendimentoController
+    HistoricoAtendimentoController,
+    IAController
 };
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Route;
@@ -17,7 +18,7 @@ use Orion\Facades\Orion;
 Route::post('auth/register', [AutenticadorController::class, 'register']);
 Route::post('auth/login', [AutenticadorController::class, 'login']);
 Route::post('auth/logout', [AutenticadorController::class, 'logout'])->middleware('auth:sanctum');
-    
+
 
 Route::group(['as' => 'api.'], function() {
 
@@ -56,6 +57,10 @@ Route::group(['as' => 'api.'], function() {
     Orion::hasManyResource('emergencia', 'historico', HistoricoAtendimentoController::class)->withSoftDeletes();
 
 
+    
 
-});
+    });
 
+
+
+Route::post('ia/transcribe', [IAController::class, 'transcribe']);
