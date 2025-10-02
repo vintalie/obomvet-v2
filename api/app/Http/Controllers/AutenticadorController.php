@@ -24,7 +24,7 @@ class AutenticadorController extends Controller
                     'nome_completo' => 'required|string|max:255',
                     'telefone_principal' => 'required|string|max:20',
                     'telefone_alternativo' => 'nullable|string|max:20',
-                    'cpf' => 'required|string|size:11|unique:tutores,cpf',
+                    'cpf' => 'required|string|size:11|unique:tutors,cpf',
                 ]);
                 break;
             case 'veterinario':
