@@ -13,7 +13,7 @@ class AutenticadorController extends Controller
     public function register(Request $request){
         $registerUserData = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email|max:255|unique:usuarios',
             'password' => 'required|string|min:8',
             'tipo' => 'required|in:tutor,veterinario,admin',
         ]);
