@@ -13,11 +13,101 @@ export default function ReportInput() {
   const audioChunksRef = useRef<Blob[]>([]);
   const navigate = useNavigate();
 
+  // Verificar suporte da Web Speech API - CORRIGIDO
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || 
+                            (window as any).webkitSpeechRecognition;
+    
+    const isFirefox = /firefox/i.test(navigator.userAgent);
+    
+    if (!SpeechRecognition || isFirefox) {
+      setIsSpeechSupported(false);
+      return;
+    }
+
+    // Configuração CORRIGIDA do SpeechRecognition
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.continuous = true; // Mudado para true
+    recognitionRef.current.interimResults = true; // Mudado para true
+    recognitionRef.current.lang = 'pt-BR';
+    
+    // Timeout para detecção de silêncio (10 segundos)
+    recognitionRef.current.onstart = () => {
+      console.log('Reconhecimento iniciado');
+    };
+
+    recognitionRef.current.onresult = (event: any) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      // Atualiza com resultados intermediários e finais
+      const newText = finalTranscript || interimTranscript;
+      if (newText) {
+        setTranscribedText(newText);
+        setFormData(prev => ({
+          ...prev,
+          descricao_sintomas: newText
+        }));
+      }
+    };
+
+    recognitionRef.current.onerror = (event: any) => {
+      console.error('Erro na transcrição:', event.error);
+      
+      // Tratamento específico para "no-speech"
+      if (event.error === 'no-speech') {
+        setError('Não foi detectada nenhuma fala. Tente novamente falando mais claramente.');
+      } else if (event.error === 'audio-capture') {
+        setError('Não foi possível acessar o microfone. Verifique as permissões.');
+      } else {
+        setError(`Erro na transcrição: ${event.error}`);
+      }
+      
+      setIsTranscribing(false);
+    };
+
+    recognitionRef.current.onend = () => {
+      console.log('Reconhecimento finalizado');
+      setIsTranscribing(false);
+      
+      // Se ainda estiver gravando, reinicia o reconhecimento
+      if (isRecording && recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+        } catch (err) {
+          console.log('Reconhecimento já iniciado');
+        }
+      }
+    };
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
   useEffect(() => {
     setShowInstructions(isRecording);
   }, [isRecording]);
 
   async function startRecording() {
+    if (!isSpeechSupported) {
+      alert("Gravação de voz não suportada neste navegador. Use Chrome, Edge ou Safari.");
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);

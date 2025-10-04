@@ -14,6 +14,7 @@ class Emergencia extends Model
         'tutor_id',
         'veterinario_id',
         'descricao_sintomas',
+        'visit_type',
         'nivel_urgencia',
         'status',
         'data_abertura',
