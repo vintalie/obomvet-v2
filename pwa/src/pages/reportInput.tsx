@@ -1,12 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-interface EmergencyForm {
-  pet_id: string;
-  descricao_sintomas: string;
-  nivel_urgencia: "baixa" | "media" | "alta" | "critica";
-}
-
 export default function ReportInput() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -139,20 +133,15 @@ export default function ReportInput() {
     setIsRecording(false);
   }
 
-   async function handleSubmit() {
+  async function handleSubmit() {
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/");
       return;
     }
 
-    if (!formData.descricao_sintomas.trim()) {
-      alert("Por favor, descreva os sintomas (grave áudio ou digite)");
-      return;
-    }
-
-    if (!formData.pet_id) {
-      alert("Por favor, selecione um pet");
+    if (!audioUrl && !textInput.trim()) {
+      alert("Grave um áudio ou digite o relatório.");
       return;
     }
 
@@ -171,7 +160,7 @@ export default function ReportInput() {
         formData.append("text", textInput);
       }
 
-      const res = await fetch("http://localhost:8000/api/emergencias", {
+      const res = await fetch("http://localhost:8000/api/report", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -193,7 +182,7 @@ export default function ReportInput() {
 
   return (
     <div className="p-6 max-w-xl mx-auto mt-10">
-      <h1 className="text-2xl font-bold mb-4">Enviar Relatório de Emergência</h1>
+      <h1 className="text-2xl font-bold mb-4">Enviar Relatório</h1>
 
       {showInstructions && <p className="mb-2 text-gray-600 animate-fadeIn">Gravando... fale claramente.</p>}
       {error && <p className="text-red-500">{error}</p>}

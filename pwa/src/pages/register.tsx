@@ -37,8 +37,6 @@ export default function Register() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    
-    
     try {
   const response = await fetch("http://127.0.0.1:8000/api/auth/register", {
         method: "POST",
