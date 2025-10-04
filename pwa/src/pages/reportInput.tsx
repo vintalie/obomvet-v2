@@ -1,12 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-interface EmergencyForm {
-  pet_id: string;
-  descricao_sintomas: string;
-  nivel_urgencia: "baixa" | "media" | "alta" | "critica";
-}
-
 export default function ReportInput() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -15,133 +9,39 @@ export default function ReportInput() {
   const [report, setReport] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [transcribedText, setTranscribedText] = useState("");
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  // Removido: isSpeechSupported (já que vamos usar Whisper no backend)
-
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  // Removido: recognitionRef (Web Speech)
-  const streamRef = useRef<MediaStream | null>(null); // Referência para o stream
   const navigate = useNavigate();
 
   useEffect(() => {
     setShowInstructions(isRecording);
   }, [isRecording]);
 
-  // Função de gravação ajustada (sem Web Speech API)
   async function startRecording() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100,
-        },
-      });
-
-      streamRef.current = stream; // Salva referência do stream
-
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "audio/webm; codecs=opus",
-      });
-
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (e: BlobEvent) => {
-        if (e.data && e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
+      mediaRecorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/mp3" });
+        setAudioUrl(URL.createObjectURL(audioBlob));
       };
 
-      // --- INTEGRAÇÃO: envia ao backend quando a gravação parar ---
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-
-        const formData = new FormData();
-        formData.append("file", audioBlob, "audio.webm");
-
-        try {
-          setIsTranscribing(true);
-          setError("");
-          console.log("Enviando áudio para backend (/api/ia/transcribe) ...");
-
-          const res = await fetch("http://localhost:8000/api/ia/transcribe", {
-            method: "POST",
-            body: formData,
-          });
-
-          const data = await res.json();
-          console.log("Resposta Whisper/backend:", data);
-
-          if (!res.ok) throw new Error(data.error || "Erro na transcrição");
-
-          // Atualiza estados com o texto retornado pelo Whisper
-          setTranscribedText(data.text || "");
-          setFormData((prev) => ({
-            ...prev,
-            descricao_sintomas: data.text || "",
-          }));
-
-          // Também preencher a textarea visível (sua UI usa textInput)
-          setTextInput(data.text || "");
-        } catch (err: any) {
-          console.error("Erro durante transcrição:", err);
-          setError(err.message || "Erro na transcrição");
-        } finally {
-          setIsTranscribing(false);
-        }
-      };
-      // --- fim integração ---
-
-      // Iniciar gravação (coletar a cada 1s)
-      mediaRecorder.start(1000);
+      mediaRecorder.start();
       setIsRecording(true);
-      setTranscribedText("");
-      setError("");
-    } catch (err: any) {
-      console.error("Erro ao acessar microfone:", err);
-      alert("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
+    } catch (err) {
+      alert("Não foi possível acessar o microfone. Você pode digitar o relatório.");
     }
   }
 
   function stopRecording() {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      setIsTranscribing(false);
-
-      // Parar stream de áudio
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-    }
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
   }
-
-  // Função auxiliar para usar texto transcrito (mantive ela)
-  function useTranscribedText() {
-    setTextInput((prev) => {
-      const newText = prev + (prev ? " " : "") + transcribedText;
-      setFormData((prevForm) => ({
-        ...prevForm,
-        descricao_sintomas: newText,
-      }));
-      return newText;
-    });
-  }
-
-  // Restante do código permanece similar...
-  const [formData, setFormData] = useState<EmergencyForm>({
-    pet_id: "",
-    descricao_sintomas: "",
-    nivel_urgencia: "media",
-  });
 
   async function handleSubmit() {
     const token = localStorage.getItem("token");
@@ -150,13 +50,8 @@ export default function ReportInput() {
       return;
     }
 
-    if (!formData.descricao_sintomas.trim()) {
-      alert("Por favor, descreva os sintomas (grave áudio ou digite)");
-      return;
-    }
-
-    if (!formData.pet_id) {
-      alert("Por favor, selecione um pet");
+    if (!audioUrl && !textInput.trim()) {
+      alert("Grave um áudio ou digite o relatório.");
       return;
     }
 
@@ -165,19 +60,20 @@ export default function ReportInput() {
     setReport(null);
 
     try {
-      const payload = {
-        pet_id: parseInt(formData.pet_id),
-        descricao_sintomas: formData.descricao_sintomas,
-        nivel_urgencia: formData.nivel_urgencia,
-      };
+      const formData = new FormData();
+      if (audioUrl) {
+        const response = await fetch(audioUrl);
+        const blob = await response.blob();
+        formData.append("audio", blob, "report.mp3");
+      }
+      if (textInput.trim()) {
+        formData.append("text", textInput);
+      }
 
-      const res = await fetch("http://localhost:8000/api/emergencias", {
+      const res = await fetch("http://localhost:8000/api/report", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
 
       if (!res.ok) {
@@ -186,17 +82,7 @@ export default function ReportInput() {
       }
 
       const data = await res.json();
-      setReport("Relatório enviado com sucesso!");
-
-      // Reset form
-      setFormData({
-        pet_id: "",
-        descricao_sintomas: "",
-        nivel_urgencia: "media",
-      });
-      setTextInput("");
-      setTranscribedText("");
-      setAudioUrl(null);
+      setReport(data.report);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -204,113 +90,28 @@ export default function ReportInput() {
     }
   }
 
-  const pets = [
-    { id: "1", name: "Rex" },
-    { id: "2", name: "Mimi" },
-    { id: "3", name: "Thor" },
-  ];
-
   return (
     <div className="p-6 max-w-xl mx-auto mt-10">
-      <h1 className="text-2xl font-bold mb-4">Enviar Relatório de Emergência</h1>
+      <h1 className="text-2xl font-bold mb-4">Enviar Relatório</h1>
 
-      {showInstructions && (
-        <p className="mb-2 text-gray-600 animate-fadeIn">Gravando... fale claramente.</p>
-      )}
+      {showInstructions && <p className="mb-2 text-gray-600 animate-fadeIn">Gravando... fale claramente.</p>}
+      {error && <p className="text-red-500">{error}</p>}
+      {report && <p className="text-green-600 mt-2">{report}</p>}
 
-      {isTranscribing && <p className="mb-2 text-blue-600">Transcrevendo áudio...</p>}
-
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      {report && <p className="text-green-600 mb-4">{report}</p>}
-
-      {/* Formulário */}
-      <div className="space-y-4 mb-6">
-        <div>
-          <label className="block text-sm font-medium mb-2">Selecione o Pet:</label>
-          <select
-            value={formData.pet_id}
-            onChange={(e) => setFormData((prev) => ({ ...prev, pet_id: e.target.value }))}
-            className="w-full p-2 border rounded"
-            required
-          >
-            <option value="">Selecione um pet</option>
-            {pets.map((pet) => (
-              <option key={pet.id} value={pet.id}>
-                {pet.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Nível de Urgência:</label>
-          <select
-            value={formData.nivel_urgencia}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, nivel_urgencia: e.target.value as EmergencyForm["nivel_urgencia"] }))
-            }
-            className="w-full p-2 border rounded"
-          >
-            <option value="baixa">Baixa</option>
-            <option value="media">Média</option>
-            <option value="alta">Alta</option>
-            <option value="critica">Crítica</option>
-          </select>
-        </div>
+      <div className="flex gap-2 mb-4">
+        {!isRecording && <button onClick={startRecording} className="bg-blue-600 text-white px-4 py-2 rounded">Iniciar Gravação</button>}
+        {isRecording && <button onClick={stopRecording} className="bg-red-600 text-white px-4 py-2 rounded">Parar Gravação</button>}
       </div>
 
-      {/* Controles de Áudio */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-2">Descrição dos Sintomas:</label>
+      <textarea
+        placeholder="Ou digite o relatório aqui"
+        value={textInput}
+        onChange={(e) => setTextInput(e.target.value)}
+        className="w-full p-2 border rounded mb-4"
+      />
 
-        <div className="flex gap-2 mb-3">
-          {!isRecording ? (
-            <button onClick={startRecording} className="bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2">
-              🎤 Iniciar Gravação
-            </button>
-          ) : (
-            <button onClick={stopRecording} className="bg-gray-600 text-white px-4 py-2 rounded">
-              ⏹️ Parar Gravação
-            </button>
-          )}
-        </div>
-
-        {/* Transcrição */}
-        {transcribedText && (
-          <div className="mb-3 p-3 bg-blue-50 rounded">
-            <p className="text-sm text-gray-600 mb-2">Texto transcrito:</p>
-            <p className="text-gray-800">{transcribedText}</p>
-            <button onClick={useTranscribedText} className="mt-2 text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">
-              Usar este texto
-            </button>
-          </div>
-        )}
-
-        <textarea
-          placeholder="Digite a descrição dos sintomas ou use a gravação"
-          value={textInput}
-          onChange={(e) => setTextInput(e.target.value)}
-          className="w-full p-3 border rounded mb-2 h-32"
-        />
-
-        <p className="text-sm text-gray-600">Caracteres: {formData.descricao_sintomas.length}</p>
-      </div>
-
-      {/* Preview do Áudio */}
-      {audioUrl && (
-        <div className="mb-4">
-          <audio controls src={audioUrl} className="w-full">
-            Seu navegador não suporta o elemento de áudio.
-          </audio>
-        </div>
-      )}
-
-      <button
-        onClick={handleSubmit}
-        disabled={loading || !formData.descricao_sintomas.trim() || !formData.pet_id}
-        className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700 disabled:bg-gray-400"
-      >
-        {loading ? "Enviando..." : "Enviar Relatório de Emergência"}
+      <button onClick={handleSubmit} disabled={loading} className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
+        {loading ? "Enviando..." : "Enviar Relatório"}
       </button>
     </div>
   );

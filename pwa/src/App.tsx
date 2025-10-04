@@ -19,7 +19,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/report" element={<PrivateRoute><ReportInput /></PrivateRoute>} />
+  <Route path="/reportInput" element={<ReportInput />} />
         {/* Redireciona qualquer rota desconhecida para a Home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
