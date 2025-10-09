@@ -12,7 +12,6 @@ return new class extends Migration
             $table->enum('visita_tipo', ['domicilio', 'clinica'])->nullable()->after('descricao_sintomas');
         });
 
-
     }
 
     public function down()
@@ -20,6 +19,5 @@ return new class extends Migration
         Schema::table('emergencias', function (Blueprint $table) {
             $table->dropColumn('visita_tipo');
         });
-
     }
 };
