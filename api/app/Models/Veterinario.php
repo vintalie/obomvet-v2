@@ -11,6 +11,7 @@ class Veterinario extends Model
 
     protected $fillable = [
         'usuario_id',
+        'clinica_id', // <-- Novo campo
         'nome_completo',
         'crmv',
         'localizacao',
@@ -26,6 +27,11 @@ class Veterinario extends Model
     public function user()
     {
         return $this->belongsTo(Usuario::class);
+    }
+
+    public function clinica()
+    {
+        return $this->belongsTo(Clinica::class);
     }
 
     public function emergencias()

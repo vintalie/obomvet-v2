@@ -6,6 +6,7 @@ use App\Http\Controllers\{
     TutorController,
     PetController,
     VeterinarioController,
+    ClinicaController,
     EmergenciaController,
     HistoricoAtendimentoController,
     IAController
@@ -41,6 +42,16 @@ Route::group(['as' => 'api.'], function() {
     )->middleware('auth:sanctum');
     
     Orion::hasManyResource('tutor', 'pets', PetController::class)->withSoftDeletes();
+
+    Orion::resource(
+        name: '/clinicas',
+        controller: ClinicaController::class
+    )->middleware('auth:sanctum');
+
+    Orion::hasManyResource('clinica','veterinario', ClinicaController::class)->withSoftDeletes();
+
+    Orion::hasOneResource('usuario','clinica', ClinicaController::class)->withSoftDeletes();
+
     
     Orion::resource(
         name: '/veterinarios',
