@@ -13,6 +13,8 @@ use App\Http\Controllers\{
 };
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 
 use Orion\Facades\Orion;
 
@@ -21,8 +23,12 @@ Route::post('auth/login', [AutenticadorController::class, 'login']);
 Route::post('auth/logout', [AutenticadorController::class, 'logout'])->middleware('auth:sanctum');
 
 
-Route::group(['as' => 'api.'], function() {
 
+
+
+
+Route::group(['as' => 'api.'], function() {
+    
     Orion::resource(
         name: '/usuarios',
         controller: UsuarioController::class
@@ -69,3 +75,15 @@ Route::group(['as' => 'api.'], function() {
 
 
 Route::post('ia/transcribe', [IAController::class, 'transcribe']);
+
+// Rota para verificar o e-mail
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill(); // marca o usuário como verificado
+    return response()->json(['message' => 'E-mail verificado com sucesso!']);
+})->middleware(['auth:sanctum', 'signed'])->name('verification.verify');
+
+// Rota para reenviar link
+Route::post('/email/resend', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return response()->json(['message' => 'Link de verificação reenviado!']);
+})->middleware(['auth:sanctum'])->name('verification.send');
