@@ -4,17 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Usuario;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 
 class AutenticadorController extends Controller
 {
-    public function register(Request $request){
-
+    public function register(Request $request)
+    {
         $registerUserData = [];
         $userData = [];
-        
+
         switch ($request->tipo) {
             case 'tutor':
                 $registerUserData = $request->validate([
@@ -27,7 +28,8 @@ class AutenticadorController extends Controller
                     'telefone_alternativo' => 'nullable|string|max:20',
                     'cpf' => 'required|string|size:11|unique:tutors,cpf',
                 ]);
-            break;
+                break;
+
             case 'veterinario':
                 $registerUserData = $request->validate([
                     'name' => 'required|string|max:255',
@@ -41,8 +43,9 @@ class AutenticadorController extends Controller
                     'telefone_emergencia' => 'required|string|max:20',
                     'disponivel_24h' => 'required|boolean',
                 ]);
-            break;
-             case 'clinica':
+                break;
+
+            case 'clinica':
                 $registerUserData = $request->validate([
                     'name' => 'required|string|max:255',
                     'email' => 'required|string|email|max:255|unique:usuarios',
@@ -57,21 +60,15 @@ class AutenticadorController extends Controller
                     'horario_funcionamento' => 'required|string|max:255',
                     'disponivel_24h' => 'required|boolean',
                     'localizacao' => 'required|string|max:255',
-                    
+                    'email_contato' => 'nullable|email|max:255',
                 ]);
                 break;
+
             default:
-                $registerUserData = $request->validate([
-                    'name' => 'required|string|max:255',
-                    'email' => 'required|string|email|max:255|unique:usuarios',
-                    'password' => 'required|string|min:8',
-                    'tipo' => 'required|in:tutor,veterinario,clinica',
-                ]);
-                break;
+                return response()->json([
+                    'message' => 'Tipo de usuário inválido.'
+                ], 422);
         }
-
-
-
 
         $user = Usuario::create([
             'name' => $registerUserData['name'],
@@ -80,59 +77,49 @@ class AutenticadorController extends Controller
             'tipo' => $registerUserData['tipo'],
         ]);
 
-        
-        
         switch ($request->tipo) {
             case 'tutor':
                 $userData = $user->tutor()->create([
-                        'nome_completo' => $registerUserData['nome_completo'],
-                        'telefone_principal' => $registerUserData['telefone_principal'],
-                        'telefone_alternativo' => $registerUserData['telefone_alternativo'] ?? null,
-                        'cpf' => $registerUserData['cpf']
-                    ]
-                );
-            break;
+                    'nome_completo' => $registerUserData['nome_completo'],
+                    'telefone_principal' => $registerUserData['telefone_principal'],
+                    'telefone_alternativo' => $registerUserData['telefone_alternativo'] ?? null,
+                    'cpf' => $registerUserData['cpf']
+                ]);
+                break;
+
             case 'veterinario':
                 $userData = $user->veterinario()->create([
-                        'nome_completo' => $registerUserData['nome_completo'],
-                        'crmv' => $registerUserData['crmv'],
-                        'localizacao' => $registerUserData['localizacao'],
-                        'especialidade' => $registerUserData['especialidade'],
-                        'telefone_emergencia' => $registerUserData['telefone_emergencia'],
-                        'disponivel_24h' => $registerUserData['disponivel_24h'],
+                    'nome_completo' => $registerUserData['nome_completo'],
+                    'crmv' => $registerUserData['crmv'],
+                    'localizacao' => $registerUserData['localizacao'],
+                    'especialidade' => $registerUserData['especialidade'],
+                    'telefone_emergencia' => $registerUserData['telefone_emergencia'],
+                    'disponivel_24h' => $registerUserData['disponivel_24h'],
                 ]);
-            break;
+                break;
+
             case 'clinica':
                 $userData = $user->clinica()->create([
-                        'name' => $registerUserData['name'],
-                        'email' => $registerUserData['email'],
-                        'password' => $registerUserData['password'],
-                        'tipo' => $registerUserData['tipo'],
-                        'cnpj' => $registerUserData['cnpj'],
-                        'nome_fantasia' => $registerUserData['nome_fantasia'],
-                        'razao_social' => $registerUserData['razao_social'],
-                        'endereco' => $registerUserData['endereco'],
-                        'telefone_principal' => $registerUserData['telefone_principal'],
-                        'telefone_emergencia' => $registerUserData['telefone_emergencia'],
-                        'email_contato' => $registerUserData['email_contato'] ?? $registerUserData['email'],
-                        'horario_funcionamento' => $registerUserData['horario_funcionamento'],
-                        'disponivel_24h' => $registerUserData['disponivel_24h'],
-                        'localizacao' => $registerUserData['localizacao']
+                    'cnpj' => $registerUserData['cnpj'],
+                    'nome_fantasia' => $registerUserData['nome_fantasia'],
+                    'razao_social' => $registerUserData['razao_social'],
+                    'endereco' => $registerUserData['endereco'],
+                    'telefone_principal' => $registerUserData['telefone_principal'],
+                    'telefone_emergencia' => $registerUserData['telefone_emergencia'],
+                    'email_contato' => $registerUserData['email_contato'] ?? $registerUserData['email'],
+                    'horario_funcionamento' => $registerUserData['horario_funcionamento'],
+                    'disponivel_24h' => $registerUserData['disponivel_24h'],
+                    'localizacao' => $registerUserData['localizacao']
                 ]);
-            break;
-            default:
-            break;
-
+                break;
         }
 
-        
+        event(new Registered($user));
         
         return response()->json([
             'message' => 'User Created',
             'usuario' => $user->with($user->tipo)->find($user->id),
-            'message' => 'User Created',
-            'usuario' => $user->with($user->tipo)->find($user->id),
-        ]);
+        ], 201);
     }
 
      public function login(Request $request){

@@ -9,13 +9,13 @@ class IAController extends Controller
 {
     public function transcribe(Request $request)
     {
-        // 1️⃣ Validar tutor logado e obter pets
+        // 1️⃣ Tentar obter tutor logado (se existir)
         [$tutor, $pets] = $this->getTutorAndPets($request);
 
-        // 2️⃣ Transcrever áudio
+        // 2️⃣ Transcrever o áudio
         $transcription = $this->transcribeAudio($request->file('file'));
 
-        // 3️⃣ Gerar prompt para autofill
+        // 3️⃣ Criar prompt inteligente
         $prompt = $this->buildAutofillPrompt($tutor, $pets, $transcription);
 
         // 4️⃣ Enviar prompt para a IA
@@ -23,40 +23,44 @@ class IAController extends Controller
     }
 
     /**
-     * Obtém o tutor logado e seus pets.
+     * Obtém o tutor logado e seus pets (se houver).
+     * Permite também usuário deslogado.
+     *
+     * @return array [$tutor|null, Collection|array $pets]
      */
     private function getTutorAndPets(Request $request)
     {
         $user = $request->user();
 
-        if (!$user || !$user->isTutor()) {
-            abort(403, 'O usuário do tipo '.$user->tipo.' não pode criar uma emergência');
+        if ($user && $user->tipo === 'tutor') {
+            $tutor = $user->tutor;
+            // garante que $pets seja iterável (Collection ou array)
+            $pets = $tutor ? ($tutor->pets ?? collect()) : collect();
+            return [$tutor, $pets];
         }
 
-        $tutor = $user->tutor;
-
-        if (!$tutor) {
-            abort(404, 'Tutor não encontrado para o usuário logado');
-        }
-
-        $pets = $tutor->pets ?? [];
-
-        return [$tutor, $pets];
+        // Se o usuário não estiver logado ou não for tutor, retorna nulos/vazio
+        return [null, collect()];
     }
 
     /**
-     * Transcreve o áudio usando Whisper.
+     * Transcreve o áudio via API Whisper.
+     *
+     * @param \Illuminate\Http\UploadedFile|null $file
+     * @return string
      */
     private function transcribeAudio($file)
     {
         if (!$file) {
-            abort(400, 'Nenhum arquivo enviado');
+            abort(400, 'Nenhum arquivo enviado.');
         }
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
         ])->attach(
-            'file', fopen($file->getRealPath(), 'r'), $file->getClientOriginalName()
+            'file',
+            fopen($file->getRealPath(), 'r'),
+            $file->getClientOriginalName()
         )->post('https://api.openai.com/v1/audio/transcriptions', [
             'model' => 'whisper-1',
         ]);
@@ -65,42 +69,84 @@ class IAController extends Controller
     }
 
     /**
-     * Monta o prompt para o autofill do formulário.
+     * Monta o prompt com base no contexto e transcrição.
      */
     private function buildAutofillPrompt($tutor, $pets, $transcription)
     {
+        $tutorLogado = $tutor ? 'sim' : 'não';
+        $temPet = ($pets && count($pets) > 0) ? 'sim' : 'não';
+
+        // monta texto dos pets
         $petsText = '';
         foreach ($pets as $pet) {
             $petsText .= "- nome: {$pet->nome}, especie: {$pet->especie}, raca: {$pet->raca}, data_nascimento: {$pet->data_nascimento}, peso: {$pet->peso}\n";
         }
 
-        return "Você é um assistente que preenche formulários de emergência veterinária. 
-O formulário possui os seguintes campos a serem preenchidos a partir do relato: 
-- pet_id (selecionar entre os pets do tutor)
-- descricao_sintomas
-- visita_tipo
-- nivel_urgencia
+        // monta texto resumido do tutor (fora do heredoc para evitar interpolação complexa)
+        if ($tutor) {
+            $tutorText = "- nome: {$tutor->nome_completo}, telefone: {$tutor->telefone_principal}, cpf: {$tutor->cpf}";
+        } else {
+            $tutorText = "nenhum";
+        }
 
-O tutor possui os seguintes dados:
-- nome_completo: {$tutor->nome_completo}
-- telefone_principal: {$tutor->telefone_principal}
-- telefone_alternativo: {$tutor->telefone_alternativo}
-- cpf: {$tutor->cpf}
+        // usa heredoc com variáveis simples (sem expressões ternárias dentro)
+        return <<<PROMPT
+Você é um assistente de triagem para emergências veterinárias.
 
-Pets vinculados ao tutor:
-$petsText
+Receberá:
+- Um relato textual transcrito (pode ter vindo de áudio)
+- Informações do tutor logado (se houver)
+- Lista de pets cadastrados (pode estar vazia)
 
-Transcrição do relato: \"$transcription\"
+Tarefas:
+1. Se o tutor **não estiver logado**, extraia do relato:
+   - nome do tutor,
+   - telefone para contato,
+   - nome, espécie e idade do animal.
 
-Retorne um JSON com duas chaves:
-- \"preenchidos\": campos que você conseguiu identificar
-- \"faltando\": campos que não estão claros no relato e precisam de confirmação do usuário
+2. Se o tutor estiver logado, use seus dados.  
+   Se ele **não tiver pets**, extraia do relato as informações do animal.
 
-Responda apenas em JSON válido, sem comentários ou texto adicional.";
+3. Analise o relato e identifique:
+   - tipo de emergência (ex: atropelamento, intoxicação, sangramento, febre)
+   - nível de urgência (alta, média, baixa)
+   - ação recomendada imediata (ex: levar à clínica, manter aquecido, oferecer água)
+
+4. Retorne um JSON **válido** e estruturado assim:
+{
+  "tutor": {
+    "nome": "...",
+    "telefone": "..."
+  },
+  "animal": {
+    "nome": "...",
+    "especie": "...",
+    "idade": "...",
+    "tem_cadastro": true
+  },
+  "emergencia": {
+    "tipo": "...",
+    "urgencia": "...",
+    "acao_recomendada": "..."
+  }
+}
+
+Tutor logado: {$tutorLogado}
+Tutor tem pet cadastrado: {$temPet}
+
+Dados do tutor logado (se houver):
+{$tutorText}
+
+Pets cadastrados:
+{$petsText}
+
+Relato transcrito:
+"{$transcription}"
+PROMPT;
     }
 
     /**
-     * Envia o prompt para a IA e retorna a resposta.
+     * Envia o prompt para a API da OpenAI.
      */
     private function sendPromptToAI($prompt)
     {
@@ -109,10 +155,10 @@ Responda apenas em JSON válido, sem comentários ou texto adicional.";
         ])->post('https://api.openai.com/v1/chat/completions', [
             'model' => 'gpt-4o-mini',
             'messages' => [
-                ['role' => 'system', 'content' => 'Você é um assistente que preenche formulários veterinários.'],
+                ['role' => 'system', 'content' => 'Você é um assistente que interpreta relatos de emergência veterinária e retorna JSON estruturado.'],
                 ['role' => 'user', 'content' => $prompt],
             ],
-            'temperature' => 0,
+            'temperature' => 0.3,
         ]);
 
         return $response->json();
