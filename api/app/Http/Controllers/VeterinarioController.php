@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Veterinario;
+use App\Policies\VeterinarioPolicy;
 use Orion\Http\Controllers\Controller;
 
 class VeterinarioController extends Controller
 {
    protected $model = Veterinario::class;
+   protected $policy = VeterinarioPolicy::class;
+
    
    
    public function searchableBy(): array
