@@ -30,11 +30,6 @@ class Veterinario extends Model
         return $this->belongsTo(Usuario::class);
     }
 
-    public function clinica()
-    {
-        return $this->belongsTo(Clinica::class);
-    }
-
     public function emergencias()
     {
         return $this->hasMany(Emergencia::class);

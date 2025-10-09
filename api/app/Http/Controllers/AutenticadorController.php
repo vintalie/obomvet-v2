@@ -11,12 +11,7 @@ use Illuminate\Support\Facades\Hash;
 class AutenticadorController extends Controller
 {
     public function register(Request $request){
-        $registerUserData = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:usuarios',
-            'password' => 'required|string|min:8',
-            'tipo' => 'required|in:tutor,veterinario,admin',
-        ]);
+
         $registerUserData = [];
         $userData = [];
         
@@ -26,19 +21,19 @@ class AutenticadorController extends Controller
                     'name' => 'required|string|max:255',
                     'email' => 'required|string|email|max:255|unique:usuarios',
                     'password' => 'required|string|min:8',
-                    'tipo' => 'required|in:tutor,veterinario,admin',
+                    'tipo' => 'required|in:tutor',
                     'nome_completo' => 'required|string|max:255',
                     'telefone_principal' => 'required|string|max:20',
                     'telefone_alternativo' => 'nullable|string|max:20',
                     'cpf' => 'required|string|size:11|unique:tutors,cpf',
                 ]);
-                break;
+            break;
             case 'veterinario':
                 $registerUserData = $request->validate([
                     'name' => 'required|string|max:255',
                     'email' => 'required|string|email|max:255|unique:usuarios',
                     'password' => 'required|string|min:8',
-                    'tipo' => 'required|in:tutor,veterinario,admin',
+                    'tipo' => 'required|in:veterinario',
                     'crmv' => 'required|string|unique:veterinarios,crmv',
                     'nome_completo' => 'required|string|max:255',
                     'localizacao' => 'required|string|max:255',
@@ -46,14 +41,14 @@ class AutenticadorController extends Controller
                     'telefone_emergencia' => 'required|string|max:20',
                     'disponivel_24h' => 'required|boolean',
                 ]);
-                break;
+            break;
              case 'clinica':
                 $registerUserData = $request->validate([
                     'name' => 'required|string|max:255',
                     'email' => 'required|string|email|max:255|unique:usuarios',
                     'password' => 'required|string|min:8',
-                    'tipo' => 'required|in:tutor,veterinario,admin',
-                    'cnpj' => 'required|number|unique:clinica,cnpj',
+                    'tipo' => 'required|in:clinica',
+                    'cnpj' => 'required|string|unique:clinicas,cnpj',
                     'nome_fantasia' => 'required|string|max:255',
                     'razao_social' => 'required|string|max:255',
                     'endereco' => 'required|string|max:255',
@@ -70,7 +65,7 @@ class AutenticadorController extends Controller
                     'name' => 'required|string|max:255',
                     'email' => 'required|string|email|max:255|unique:usuarios',
                     'password' => 'required|string|min:8',
-                    'tipo' => 'required|in:tutor,veterinario,admin',
+                    'tipo' => 'required|in:tutor,veterinario,clinica',
                 ]);
                 break;
         }
@@ -97,36 +92,36 @@ class AutenticadorController extends Controller
                     ]
                 );
             break;
-        case 'veterinario':
-            $userData = $user->veterinario()->create([
-                    'nome_completo' => $registerUserData['nome_completo'],
-                    'crmv' => $registerUserData['crmv'],
-                    'localizacao' => $registerUserData['localizacao'],
-                    'especialidade' => $registerUserData['especialidade'],
-                    'telefone_emergencia' => $registerUserData['telefone_emergencia'],
-                    'disponivel_24h' => $registerUserData['disponivel_24h'],
-            ]);
-        break;
-        case 'clinica':
-            $userData = $user->veterinario()->create([
-                    'name' => $registerUserData['name'],
-                    'email' => $registerUserData['email'],
-                    'password' => $registerUserData['password'],
-                    'tipo' => $registerUserData['tipo'],
-                    'cnpj' => $registerUserData['cnpj'],
-                    'nome_fantasia' => $registerUserData['nome_fantasia'],
-                    'razao_social' => $registerUserData['razao_social'],
-                    'endereco' => $registerUserData['endereco'],
-                    'telefone_principal' => $registerUserData['telefone_principal'],
-                    'telefone_emergencia' => $registerUserData['telefone_emergencia'],
-                    'email_contato' => $registerUserData['email_contato'] ?? $registerUserData['email'],
-                    'horario_funcionamento' => $registerUserData['horario_funcionamento'],
-                    'disponivel_24h' => $registerUserData['disponivel_24h'],
-                    'localizacao' => $registerUserData['localizacao']
-            ]);
-        break;
+            case 'veterinario':
+                $userData = $user->veterinario()->create([
+                        'nome_completo' => $registerUserData['nome_completo'],
+                        'crmv' => $registerUserData['crmv'],
+                        'localizacao' => $registerUserData['localizacao'],
+                        'especialidade' => $registerUserData['especialidade'],
+                        'telefone_emergencia' => $registerUserData['telefone_emergencia'],
+                        'disponivel_24h' => $registerUserData['disponivel_24h'],
+                ]);
+            break;
+            case 'clinica':
+                $userData = $user->clinica()->create([
+                        'name' => $registerUserData['name'],
+                        'email' => $registerUserData['email'],
+                        'password' => $registerUserData['password'],
+                        'tipo' => $registerUserData['tipo'],
+                        'cnpj' => $registerUserData['cnpj'],
+                        'nome_fantasia' => $registerUserData['nome_fantasia'],
+                        'razao_social' => $registerUserData['razao_social'],
+                        'endereco' => $registerUserData['endereco'],
+                        'telefone_principal' => $registerUserData['telefone_principal'],
+                        'telefone_emergencia' => $registerUserData['telefone_emergencia'],
+                        'email_contato' => $registerUserData['email_contato'] ?? $registerUserData['email'],
+                        'horario_funcionamento' => $registerUserData['horario_funcionamento'],
+                        'disponivel_24h' => $registerUserData['disponivel_24h'],
+                        'localizacao' => $registerUserData['localizacao']
+                ]);
+            break;
             default:
-        break;
+            break;
 
         }
 

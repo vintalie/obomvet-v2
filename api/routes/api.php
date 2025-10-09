@@ -43,12 +43,6 @@ Route::group(['as' => 'api.'], function() {
     
     Orion::hasManyResource('tutor', 'pets', PetController::class)->withSoftDeletes();
 
-    Orion::resource(
-        name: '/clinicas',
-        controller: ClinicaController::class
-    )->middleware('auth:sanctum');
-
-    Orion::hasManyResource('clinica','veterinario', ClinicaController::class)->withSoftDeletes();
 
     Orion::hasOneResource('usuario','clinica', ClinicaController::class)->withSoftDeletes();
 

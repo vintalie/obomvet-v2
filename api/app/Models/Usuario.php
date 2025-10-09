@@ -32,6 +32,10 @@ class Usuario extends Authenticatable
     {
         return $this->hasOne(Veterinario::class);
     }
+    public function clinica()
+    {
+        return $this->hasOne(Clinica::class);
+    }
 
     public function isTutor()
     {
@@ -41,5 +45,9 @@ class Usuario extends Authenticatable
     public function isVeterinario()
     {
         return $this->tipo === 'veterinario';
+    }
+        public function isClinica()
+    {
+        return $this->tipo === 'clinica';
     }
 }
