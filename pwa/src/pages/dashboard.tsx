@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { getToken, clearTokenFallback } from '../utils/auth'
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [userType, setUserType] = useState<string>("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = getToken();
     if (!token) {
       navigate("/");
       return;
@@ -19,7 +20,7 @@ export default function Dashboard() {
   }, [navigate]);
 
   function handleLogout() {
-    localStorage.removeItem("token");
+    clearTokenFallback();
     navigate("/");
   }
 

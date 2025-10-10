@@ -1,24 +1,46 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
-use Illuminate\Foundation\Configuration\Middleware;
-use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
+require_once __DIR__.'/../vendor/autoload.php';
 
-return Application::configure(basePath: dirname(__DIR__))
-    ->withRouting(
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
-        channels: __DIR__.'/../routes/channels.php',
-        health: '/up',
-    )
-    ->withMiddleware(function (Middleware $middleware) {
+$app = new Laravel\Lumen\Application(
+    dirname(__DIR__)
+);
 
-        $middleware->alias([
-            'ability' => CheckForAnyAbility::class,
-        ]);
+// Ativa Facades e Eloquent ORM
+$app->withFacades();
+$app->withEloquent();
 
-    })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        //
-    })->create();
+// ----------------------
+// Middleware global
+// ----------------------
+$app->middleware([
+    App\Http\Middleware\CorsMiddleware::class, // Middleware CORS próprio
+    // Você pode adicionar outros middlewares globais aqui
+]);
+
+// ----------------------
+// Middleware de rota
+// ----------------------
+$app->routeMiddleware([
+    'auth' => App\Http\Middleware\Authenticate::class,
+]);
+
+// ----------------------
+// Carrega rotas
+// ----------------------
+$app->router->group([
+    'namespace' => 'App\Http\Controllers',
+], function ($router) {
+    require __DIR__.'/../routes/web.php';
+    require __DIR__.'/../routes/api.php';
+});
+
+// ----------------------
+// Configurações adicionais (opcional)
+// ----------------------
+// Aqui você poderia registrar providers extras, como Orion ou Sanctum
+// Exemplo:
+// $app->register(Orion\OrionServiceProvider::class);
+// $app->register(Laravel\Sanctum\SanctumServiceProvider::class);
+
+return $app;

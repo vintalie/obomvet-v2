@@ -5,9 +5,10 @@ import Dashboard from "./pages/dashboard";
 import ReportInput from "./pages/reportInput";
 import Home from './pages/home'; 
 import './styles/app.css';
+import { getToken } from './utils/auth';
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   return token ? children : <Navigate to="/" />;
 }
 
