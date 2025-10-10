@@ -5,42 +5,41 @@ export default function ReportInput() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [textInput, setTextInput] = useState("");
+  const [transcribedText, setTranscribedText] = useState("");
   const [showInstructions, setShowInstructions] = useState(false);
   const [report, setReport] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isSpeechSupported, setIsSpeechSupported] = useState(true);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const navigate = useNavigate();
 
-  // Verificar suporte da Web Speech API - CORRIGIDO
+  // Inicializa SpeechRecognition
   useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || 
-                            (window as any).webkitSpeechRecognition;
-    
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const isFirefox = /firefox/i.test(navigator.userAgent);
-    
+
     if (!SpeechRecognition || isFirefox) {
       setIsSpeechSupported(false);
       return;
     }
 
-    // Configuração CORRIGIDA do SpeechRecognition
     recognitionRef.current = new SpeechRecognition();
-    recognitionRef.current.continuous = true; // Mudado para true
-    recognitionRef.current.interimResults = true; // Mudado para true
-    recognitionRef.current.lang = 'pt-BR';
-    
-    // Timeout para detecção de silêncio (10 segundos)
-    recognitionRef.current.onstart = () => {
-      console.log('Reconhecimento iniciado');
-    };
+    recognitionRef.current.continuous = true;
+    recognitionRef.current.interimResults = true;
+    recognitionRef.current.lang = "pt-BR";
 
     recognitionRef.current.onresult = (event: any) => {
-      let finalTranscript = '';
-      let interimTranscript = '';
+      let finalTranscript = "";
+      let interimTranscript = "";
 
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           finalTranscript += event.results[i][0].transcript;
         } else {
@@ -48,68 +47,39 @@ export default function ReportInput() {
         }
       }
 
-      // Atualiza com resultados intermediários e finais
       const newText = finalTranscript || interimTranscript;
-      if (newText) {
-        setTranscribedText(newText);
-        setFormData(prev => ({
-          ...prev,
-          descricao_sintomas: newText
-        }));
-      }
+      if (newText) setTranscribedText(newText);
     };
 
     recognitionRef.current.onerror = (event: any) => {
-      console.error('Erro na transcrição:', event.error);
-      
-      // Tratamento específico para "no-speech"
-      if (event.error === 'no-speech') {
-        setError('Não foi detectada nenhuma fala. Tente novamente falando mais claramente.');
-      } else if (event.error === 'audio-capture') {
-        setError('Não foi possível acessar o microfone. Verifique as permissões.');
-      } else {
-        setError(`Erro na transcrição: ${event.error}`);
-      }
-      
-      setIsTranscribing(false);
+      console.error("Erro na transcrição:", event.error);
+      if (event.error === "no-speech") setError("Não foi detectada fala. Tente novamente.");
+      else if (event.error === "audio-capture") setError("Não foi possível acessar o microfone.");
+      else setError(`Erro na transcrição: ${event.error}`);
+      setIsRecording(false);
     };
 
     recognitionRef.current.onend = () => {
-      console.log('Reconhecimento finalizado');
-      setIsTranscribing(false);
-      
-      // Se ainda estiver gravando, reinicia o reconhecimento
-      if (isRecording && recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch (err) {
-          console.log('Reconhecimento já iniciado');
-        }
-      }
+      if (isRecording) recognitionRef.current?.start(); // reinicia enquanto grava
     };
 
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
+      recognitionRef.current?.stop();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
     };
-  }, []);
-
-  useEffect(() => {
-    setShowInstructions(isRecording);
   }, [isRecording]);
+
+  useEffect(() => setShowInstructions(isRecording), [isRecording]);
 
   async function startRecording() {
     if (!isSpeechSupported) {
-      alert("Gravação de voz não suportada neste navegador. Use Chrome, Edge ou Safari.");
+      alert("Gravação de voz não suportada neste navegador.");
       return;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -122,14 +92,17 @@ export default function ReportInput() {
       };
 
       mediaRecorder.start();
+      recognitionRef.current?.start();
       setIsRecording(true);
-    } catch (err) {
+    } catch {
       alert("Não foi possível acessar o microfone. Você pode digitar o relatório.");
     }
   }
 
   function stopRecording() {
     mediaRecorderRef.current?.stop();
+    recognitionRef.current?.stop();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
     setIsRecording(false);
   }
 
@@ -140,7 +113,7 @@ export default function ReportInput() {
       return;
     }
 
-    if (!audioUrl && !textInput.trim()) {
+    if (!audioUrl && !textInput.trim() && !transcribedText.trim()) {
       alert("Grave um áudio ou digite o relatório.");
       return;
     }
@@ -151,14 +124,14 @@ export default function ReportInput() {
 
     try {
       const formData = new FormData();
+
       if (audioUrl) {
-        const response = await fetch(audioUrl);
-        const blob = await response.blob();
+        const blob = await fetch(audioUrl).then((r) => r.blob());
         formData.append("audio", blob, "report.mp3");
       }
-      if (textInput.trim()) {
-        formData.append("text", textInput);
-      }
+
+      const finalText = textInput.trim() || transcribedText.trim();
+      if (finalText) formData.append("text", finalText);
 
       const res = await fetch("http://localhost:8000/api/report", {
         method: "POST",
@@ -193,6 +166,8 @@ export default function ReportInput() {
         {isRecording && <button onClick={stopRecording} className="bg-red-600 text-white px-4 py-2 rounded">Parar Gravação</button>}
       </div>
 
+      {audioUrl && <audio controls src={audioUrl} className="mb-4 w-full"></audio>}
+
       <textarea
         placeholder="Ou digite o relatório aqui"
         value={textInput}
@@ -200,7 +175,11 @@ export default function ReportInput() {
         className="w-full p-2 border rounded mb-4"
       />
 
-      <button onClick={handleSubmit} disabled={loading} className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
+      >
         {loading ? "Enviando..." : "Enviar Relatório"}
       </button>
     </div>
