@@ -24,7 +24,7 @@ export default function Dashboard() {
       return;
     }
     
-    fetch(`${API_URL}/api/usuarios/${getUser().id}`, {
+    fetch(`${API_URL}/api/usuarios/${getUser().id}`, { // tem um erro acontecendo aqui? alguem me ajuda /mario
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async res => {
