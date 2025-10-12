@@ -29,8 +29,13 @@ class Clinica extends Model
     /**
      * Uma clínica pode ter vários veterinários.
      */
-    public function veterinarios()
+
+    public function user()
     {
-        return $this->hasMany(Veterinario::class);
+        return $this->belongsTo(Usuario::class);
+    }
+    public function clinica()
+    {
+        return $this->belongsTo(Clinica::class);
     }
 }

@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class Usuario extends Authenticatable
+class Usuario extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -32,6 +33,10 @@ class Usuario extends Authenticatable
     {
         return $this->hasOne(Veterinario::class);
     }
+    public function clinica()
+    {
+        return $this->hasOne(Clinica::class);
+    }
 
     public function isTutor()
     {
@@ -41,5 +46,9 @@ class Usuario extends Authenticatable
     public function isVeterinario()
     {
         return $this->tipo === 'veterinario';
+    }
+        public function isClinica()
+    {
+        return $this->tipo === 'clinica';
     }
 }

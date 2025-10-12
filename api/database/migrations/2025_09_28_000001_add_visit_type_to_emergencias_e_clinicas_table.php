@@ -12,17 +12,11 @@ return new class extends Migration
             $table->enum('visita_tipo', ['domicilio', 'clinica'])->nullable()->after('descricao_sintomas');
         });
 
-         Schema::table('veterinarios', function (Blueprint $table) {
-            $table->enum('visita_tipo', ['domicilio', 'clinica'])->nullable()->after('crmv');
-        });
     }
 
     public function down()
     {
         Schema::table('emergencias', function (Blueprint $table) {
-            $table->dropColumn('visita_tipo');
-        });
-        Schema::table('veterinarios', function (Blueprint $table) {
             $table->dropColumn('visita_tipo');
         });
     }

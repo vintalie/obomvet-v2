@@ -31,27 +31,9 @@ export default function ReportInput() {
   const streamRef = useRef<MediaStream | null>(null);
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState<EmergencyForm>({
-    pet_id: "",
-    descricao_sintomas: "",
-    nivel_urgencia: "media",
-  });
-
-  const pets = [
-    { id: "1", name: "Rex" },
-    { id: "2", name: "Mimi" },
-    { id: "3", name: "Thor" },
-  ];
-
-  // Sincroniza transcrição com textarea e formData
   useEffect(() => {
-    if (transcribedText) {
-      setTextInput(transcribedText);
-      setFormData((p) => ({ ...p, descricao_sintomas: transcribedText }));
-    }
-  }, [transcribedText]);
-
-  useEffect(() => setShowInstructions(isRecording), [isRecording]);
+    setShowInstructions(isRecording);
+  }, [isRecording]);
 
   async function startRecording() {
     try {
@@ -68,10 +50,11 @@ export default function ReportInput() {
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        setAudioUrl(URL.createObjectURL(audioBlob));
+        const url = URL.createObjectURL(audioBlob);
+        setAudioUrl(url);
 
-        const formDataAudio = new FormData();
-        formDataAudio.append("file", audioBlob, "audio.webm");
+        const formData = new FormData();
+        formData.append("file", audioBlob, "audio.webm");
 
         try {
           setIsTranscribing(true);
@@ -79,7 +62,7 @@ export default function ReportInput() {
 
           const res = await fetch("http://localhost:8000/api/ia/transcribe", {
             method: "POST",
-            body: formDataAudio,
+            body: formData,
           });
 
           const data = await res.json();
@@ -91,13 +74,17 @@ export default function ReportInput() {
           try {
             parsed = JSON.parse(aiContent);
           } catch {
-            console.warn("Resposta da IA não pôde ser parseada:", aiContent);
+            console.warn("Resposta não pôde ser parseada:", aiContent);
           }
 
           if (parsed) {
             setAiResponse(parsed);
             setMissingFields(parsed.faltando || []);
-            setFormData((prev) => ({ ...prev, ...parsed.preenchidos }));
+
+            setFormData((prev) => ({
+              ...prev,
+              ...parsed.preenchidos,
+            }));
           }
 
           setTranscribedText(data.text || "");
@@ -114,7 +101,6 @@ export default function ReportInput() {
       setIsRecording(true);
       setTranscribedText("");
       setAiResponse(null);
-      setMissingFields([]);
     } catch (err: any) {
       console.error("Erro ao acessar microfone:", err);
       alert("Não foi possível acessar o microfone. Verifique as permissões.");
@@ -132,8 +118,20 @@ export default function ReportInput() {
     }
   }
 
+  const [formData, setFormData] = useState<EmergencyForm>({
+    pet_id: "",
+    descricao_sintomas: "",
+    nivel_urgencia: "media",
+  });
+
   async function handleSubmit() {
     const token = localStorage.getItem("token");
+
+    // Se o usuário não estiver logado, pode enviar sem token
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
 
     if (!formData.descricao_sintomas.trim()) {
       alert("Por favor, descreva os sintomas (grave ou digite)");
@@ -150,39 +148,33 @@ export default function ReportInput() {
         pet_id: formData.pet_id ? parseInt(formData.pet_id) : null,
       };
 
-      const headers = new Headers({ "Content-Type": "application/json" });
-
-      const fetchOptions: RequestInit = {
+      const res = await fetch("http://localhost:8000/api/emergencias", {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
-      };
+      });
 
-      // Caso esteja usando Sanctum (cookies HttpOnly)
-      const USE_SANCTUM = true;
-      if (USE_SANCTUM) {
-        fetchOptions.credentials = "include";
-        headers.delete("Authorization");
-      } else if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-      }
-
-      const res = await fetch("http://127.0.0.1:8000/api/emergencias", fetchOptions);
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message || "Erro ao enviar relatório");
 
       setReport("Emergência registrada com sucesso!");
-      setFormData({ pet_id: "", descricao_sintomas: "", nivel_urgencia: "media" });
-      setTextInput("");
-      setTranscribedText("");
-      setAiResponse(null);
+      setFormData({
+        pet_id: "",
+        descricao_sintomas: "",
+        nivel_urgencia: "media",
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   }
+
+  const pets = [
+    { id: "1", name: "Rex" },
+    { id: "2", name: "Mimi" },
+    { id: "3", name: "Thor" },
+  ];
 
   return (
     <div className="p-6 max-w-xl mx-auto mt-10">
@@ -199,17 +191,20 @@ export default function ReportInput() {
           <h2 className="font-semibold text-blue-800 mb-2">Análise da IA</h2>
           {aiResponse.preenchidos && (
             <p className="text-sm text-gray-700 mb-2">
-              Campos identificados automaticamente: {Object.keys(aiResponse.preenchidos).join(", ")}
+              Campos identificados automaticamente:{" "}
+              {Object.keys(aiResponse.preenchidos).join(", ")}
             </p>
           )}
           {missingFields.length > 0 && (
             <p className="text-sm text-red-600">
-              ⚠️ A IA não conseguiu identificar: {missingFields.join(", ")} — complete abaixo.
+              ⚠️ A IA não conseguiu identificar: {missingFields.join(", ")} — por favor, complete
+              abaixo.
             </p>
           )}
         </div>
       )}
 
+      {/* Formulário */}
       <div className="space-y-4 mb-6">
         <div>
           <label className="block text-sm font-medium mb-2">Selecione o Pet:</label>
@@ -232,7 +227,10 @@ export default function ReportInput() {
           <select
             value={formData.nivel_urgencia}
             onChange={(e) =>
-              setFormData((p) => ({ ...p, nivel_urgencia: e.target.value as EmergencyForm["nivel_urgencia"] }))
+              setFormData((p) => ({
+                ...p,
+                nivel_urgencia: e.target.value as EmergencyForm["nivel_urgencia"],
+              }))
             }
             className="w-full p-2 border rounded"
           >
@@ -248,7 +246,10 @@ export default function ReportInput() {
         <label className="block text-sm font-medium mb-2">Descrição dos Sintomas:</label>
         <div className="flex gap-2 mb-3">
           {!isRecording ? (
-            <button onClick={startRecording} className="bg-red-600 text-white px-4 py-2 rounded">
+            <button
+              onClick={startRecording}
+              className="bg-red-600 text-white px-4 py-2 rounded"
+            >
               🎤 Iniciar Gravação
             </button>
           ) : (
