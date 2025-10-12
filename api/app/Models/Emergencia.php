@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 class Emergencia extends Model
 {
     use HasFactory;
@@ -13,8 +12,9 @@ class Emergencia extends Model
         'pet_id',
         'tutor_id',
         'veterinario_id',
+        'clinica_id', // opcional
         'descricao_sintomas',
-        'visit_type',
+        'visita_tipo',
         'nivel_urgencia',
         'status',
         'data_abertura',
@@ -43,6 +43,11 @@ class Emergencia extends Model
     public function veterinario()
     {
         return $this->belongsTo(Veterinario::class);
+    }
+
+    public function clinica()
+    {
+        return $this->belongsTo(Clinica::class);
     }
 
     public function historicoAtendimentos()

@@ -5,38 +5,37 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Veterinario extends Model
+class Clinica extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'usuario_id',
-        'clinica_id',
-        'nome_completo',
-        'crmv',
-        'visita_tipo',
-        'localizacao',
-        'especialidade',
+        'nome_fantasia',
+        'razao_social',
+        'cnpj',
+        'endereco',
+        'telefone_principal',
         'telefone_emergencia',
+        'email_contato',
+        'horario_funcionamento',
         'disponivel_24h',
+        'localizacao',
     ];
 
     protected $casts = [
         'disponivel_24h' => 'boolean',
     ];
 
+    /**
+     * Uma clínica pode ter vários veterinários.
+     */
+
     public function user()
     {
         return $this->belongsTo(Usuario::class);
     }
-
-    public function emergencias()
+    public function clinica()
     {
-        return $this->hasMany(Emergencia::class);
-    }
-
-    public function historicoAtendimentos()
-    {
-        return $this->hasMany(HistoricoAtendimento::class);
+        return $this->belongsTo(Clinica::class);
     }
 }
