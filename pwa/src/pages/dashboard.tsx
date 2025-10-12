@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { getToken, clearTokenFallback } from '../utils/auth';
+import { getUser, getToken, clearTokenFallback, clearUserFallback } from '../utils/auth';
 
 interface User {
   id: number;
@@ -23,8 +23,8 @@ export default function Dashboard() {
       navigate("/");
       return;
     }
-
-    fetch(`${API_URL}/api/me`, {
+    
+    fetch(`${API_URL}/api/usuarios/${getUser().id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async res => {
@@ -35,13 +35,14 @@ export default function Dashboard() {
         }
         return res.json();
       })
-      .then(data => setUser(data))
+      .then(data => setUser(data.data))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, [navigate, API_URL]);
 
   function handleLogout() {
     clearTokenFallback();
+    clearUserFallback();
     navigate("/");
   }
 

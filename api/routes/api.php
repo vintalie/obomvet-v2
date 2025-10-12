@@ -77,21 +77,3 @@ Route::group(['as' => 'api.'], function() {
 Route::post('ia/transcribe', [IAController::class, 'transcribe']);
 use Illuminate\Http\Request;
 
-Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
-    $user = $request->user();
-
-    $tipo = null;
-    if ($user->tutor) {
-        $tipo = 'tutor';
-    } elseif ($user->veterinario) {
-        $tipo = 'veterinario';
-    }
-
-    return response()->json([
-        'id' => $user->id,
-        'name' => $user->name,
-        'email' => $user->email,
-        'tipo' => $tipo,
-    ]);
-});
-
