@@ -34,6 +34,10 @@ class Veterinario extends Model
     {
         return $this->hasMany(Emergencia::class);
     }
+    public function anexos()
+    {
+        return $this->morphOne(Anexo::class, 'anexable');
+    }
 
     public function historicoAtendimentos()
     {

@@ -24,6 +24,10 @@ class HistoricoAtendimento extends Model
     {
         return $this->belongsTo(Emergencia::class);
     }
+    public function anexos()
+    {
+        return $this->morphOne(Anexo::class, 'anexable');
+    }
 
     public function veterinario()
     {

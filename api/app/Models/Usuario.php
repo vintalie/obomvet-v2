@@ -42,12 +42,15 @@ class Usuario extends Authenticatable implements MustVerifyEmail
     {
         return $this->tipo === 'tutor';
     }
-
+    public function fotoPerfil()
+    {
+        return $this->morphOne(Anexo::class, 'anexable');
+    }
     public function isVeterinario()
     {
         return $this->tipo === 'veterinario';
     }
-        public function isClinica()
+    public function isClinica()
     {
         return $this->tipo === 'clinica';
     }

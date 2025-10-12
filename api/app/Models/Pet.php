@@ -28,7 +28,10 @@ class Pet extends Model
     {
         return $this->belongsToMany(Tutor::class, 'tutor_pet');
     }
-
+     public function fotoPet()
+    {
+        return $this->morphOne(Anexo::class, 'anexable');
+    }
     public function emergencias()
     {
         return $this->hasMany(Emergencia::class);

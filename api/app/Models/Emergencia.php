@@ -44,7 +44,10 @@ class Emergencia extends Model
     {
         return $this->belongsTo(Veterinario::class);
     }
-
+    public function anexos()
+    {
+        return $this->morphOne(Anexo::class, 'anexable');
+    }
     public function clinica()
     {
         return $this->belongsTo(Clinica::class);
