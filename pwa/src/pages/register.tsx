@@ -19,40 +19,60 @@ export default function Register() {
     telefone_emergencia: "",
     disponivel_24h: false,
   });
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+
+  console.log("API URL:", API_URL);
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const target = e.target as HTMLInputElement | HTMLSelectElement;
-    const { name, value, type } = target;
-    const checked = type === "checkbox" ? (target as HTMLInputElement).checked : undefined;
+    const { name, type } = target;
+
+    let value: any;
+    if (type === "checkbox") {
+      value = (target as HTMLInputElement).checked;
+    } else {
+      value = target.value;
+    }
+
     setFormData((prev: any) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError("");
+    setError(null);
     setLoading(true);
+
     try {
-  const response = await fetch("http://127.0.0.1:8000/api/auth/register", {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // se usar cookies no backend
         body: JSON.stringify({ tipo, ...formData }),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Erro no cadastro");
+        const data = await response.json().catch(() => ({}));
+        // Captura o primeiro erro de validação ou a mensagem geral
+        let firstError = data.message || "Erro no cadastro";
+        if (data.errors) {
+          const fieldErrors = Object.values(data.errors).flat();
+          if (fieldErrors.length > 0) firstError = fieldErrors[0];
+        }
+        throw new Error(firstError);
       }
 
       alert("Cadastro realizado com sucesso!");
       navigate("/");
     } catch (err: any) {
-      setError(err.message);
+      console.error("Erro no registro:", err);
+      setError(err.message || "Erro inesperado");
     } finally {
       setLoading(false);
     }

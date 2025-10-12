@@ -1,6 +1,7 @@
 import { useState } from "react";
 import BackButton from "../components/BackButton";
 import { useNavigate, Link } from "react-router-dom";
+import { setTokenFallback , setUserFallback} from '../utils/auth';
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -27,7 +28,8 @@ export default function Login() {
       }
 
       const data = await res.json();
-      localStorage.setItem("token", data.access_token);
+      setTokenFallback(data.access_token);
+      setUserFallback(data.id, data.name, data.email, data.tipo); // Salva dados do usuário
       navigate("/dashboard");
     } catch (err: any) {
       setError(err.message);

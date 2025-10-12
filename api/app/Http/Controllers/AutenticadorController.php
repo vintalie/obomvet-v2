@@ -136,6 +136,10 @@ class AutenticadorController extends Controller
         $token = $user->createToken($user->name.'-AuthToken', [$user->tipo])->plainTextToken;
         return response()->json([
             'access_token' => $token,
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'tipo' => $user->tipo,
         ]);
 
         
