@@ -8,7 +8,23 @@ use Orion\Http\Controllers\Controller;
 
 class EmergenciaController extends Controller
 {
-   protected $model = Emergencia::class;
-   protected $policy = EmergenciaPolicy::class;
-   
+    /**
+     * Model que o Orion vai gerenciar
+     */
+    protected $model = Emergencia::class;
+
+    /**
+     * Policy para controlar permissões
+     */
+    protected $policy = EmergenciaPolicy::class;
+
+    /**
+     * Se precisar sobrescrever algum método do Orion, pode fazer aqui.
+     * Exemplo: customização do create para permitir criação sem login
+     */
+    public function create(array $data)
+    {
+        // Criação sem necessidade de usuário logado
+        return $this->model::create($data);
+    }
 }
