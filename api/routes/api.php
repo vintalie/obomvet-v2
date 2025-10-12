@@ -7,11 +7,13 @@ use App\Http\Controllers\{
     PetController,
     VeterinarioController,
     ClinicaController,
+    AnexoController,
+    ProntuarioController,
     EmergenciaController,
     HistoricoAtendimentoController,
     IAController
 };
-use Illuminate\Database\Eloquent\Relations\HasOne;
+
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
@@ -47,10 +49,16 @@ Route::group(['as' => 'api.'], function() {
         controller: PetController::class
     )->middleware('auth:sanctum');
     
-    Orion::hasManyResource('tutor', 'pets', PetController::class)->withSoftDeletes();
+    Orion::hasManyResource('tutor', 'pet', PetController::class)->withSoftDeletes();
 
-
+    Orion::resource(
+        name: '/clinicas',
+        controller: ClinicaController::class
+    )->middleware(['auth:sanctum']);
+    
     Orion::hasOneResource('usuario','clinica', ClinicaController::class)->withSoftDeletes();
+
+    Orion::hasManyResource('clinica', 'veterinario', VeterinarioController::class)->withSoftDeletes();
 
     
     Orion::resource(
@@ -62,11 +70,25 @@ Route::group(['as' => 'api.'], function() {
 
 
     Orion::resource(
+        name: '/prontuarios',
+        controller: ProntuarioController::class
+    )->middleware('auth:sanctum');
+
+ 
+    Orion::hasOneResource('clinica','anexo', AnexoController::class)->withSoftDeletes();
+    Orion::hasOneResource('pet','anexo', AnexoController::class)->withSoftDeletes();
+    Orion::hasOneResource('prontuario','anexo', AnexoController::class)->withSoftDeletes();
+    Orion::hasOneResource('emergencia','anexo', AnexoController::class)->withSoftDeletes();
+    Orion::hasOneResource('historico','anexo', AnexoController::class)->withSoftDeletes();
+
+        
+
+
+    Orion::resource(
         name: '/emergencias',
         controller: EmergenciaController::class
     );
     Orion::hasManyResource('emergencia', 'historico', HistoricoAtendimentoController::class)->withSoftDeletes();
-
 
     
 
