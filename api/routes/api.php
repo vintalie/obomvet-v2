@@ -1,5 +1,10 @@
 <?php
 
+
+use Orion\Facades\Orion;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 use App\Http\Controllers\{
     AutenticadorController,
     UsuarioController,    
@@ -14,11 +19,6 @@ use App\Http\Controllers\{
     IAController
 };
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
-use Illuminate\Http\Request;
-
-use Orion\Facades\Orion;
 
 Route::post('auth/register', [AutenticadorController::class, 'register']);
 Route::post('auth/login', [AutenticadorController::class, 'login']);
@@ -37,7 +37,7 @@ Route::group(['as' => 'api.'], function() {
     )->middleware(['auth:sanctum']);
     
     Orion::resource(
-        name: '/tutors',
+        name: '/tutores',
         controller: TutorController::class
     )->middleware('auth:sanctum');
     
