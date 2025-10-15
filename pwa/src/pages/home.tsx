@@ -13,7 +13,7 @@ export default function Home() {
           <Link to="/" className="text-blue-700 font-semibold hover:underline">Home</Link>
           <Link to="/login" className="text-blue-700 font-semibold hover:underline">Entrar</Link>
           <Link to="/register" className="text-green-700 font-semibold hover:underline">Cadastrar-se</Link>
-          <Link to="/reportInput" className="text-red-700 font-semibold hover:underline">Emergência</Link>
+          <Link to="/criar-emergencia" className="text-red-700 font-semibold hover:underline">Emergência</Link>
         </div>
       </nav>
 
@@ -27,7 +27,7 @@ export default function Home() {
             <div className="flex gap-4 flex-wrap">
               <Link to="/login" className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition font-semibold">Entrar</Link>
               <Link to="/register" className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition font-semibold">Cadastrar-se</Link>
-              <Link to="/reportInput" className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 transition font-semibold">Descrever emergência</Link>
+              <Link to="/criar-emergencia" className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 transition font-semibold">Descrever emergência</Link>
             </div>
           </div>
           <div className="flex-1 flex items-center justify-center">

@@ -13,7 +13,7 @@ interface AutofillResponse {
   faltando?: string[];
 }
 
-export default function ReportInput() {
+export default function criarEmergencia() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [textInput, setTextInput] = useState("");
@@ -171,9 +171,7 @@ export default function ReportInput() {
   }
 
   const pets = [
-    { id: "1", name: "Rex" },
-    { id: "2", name: "Mimi" },
-    { id: "3", name: "Thor" },
+    {id: 1, name:""}
   ];
 
   return (
