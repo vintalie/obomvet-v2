@@ -134,13 +134,28 @@ class AutenticadorController extends Controller
             ],401);
         }
         $token = $user->createToken($user->name.'-AuthToken', [$user->tipo])->plainTextToken;
-        return response()->json([
+
+        $response = [
             'access_token' => $token,
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'tipo' => $user->tipo,
-        ]);
+        ];
+
+        if($user->tipo == 'clinica'){
+            $response['clinica_id'] = $user->clinica->id;
+        }
+        if($user->tipo == 'veterinario'){
+            $response['veterinario_id'] = $user->veterinario->id;
+            
+        }
+        if($user->tipo == 'tutor'){
+            $response['tutor_id'] = $user->tutor->id;
+            
+        }
+
+        return response()->json($response);
 
         
     }
