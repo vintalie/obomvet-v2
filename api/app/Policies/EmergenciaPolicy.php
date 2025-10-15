@@ -32,7 +32,7 @@ class EmergenciaPolicy
      */
     public function create(Usuario $user): bool
     {
-        return $user->tipo === 'tutor';
+        return true;
     }
 
     /**
@@ -40,7 +40,7 @@ class EmergenciaPolicy
      */
     public function update(Usuario $user, Emergencia $emergencia): bool
     {
-        return $user->tipo === 'tutor' && $emergencia->tutor_id === $user->tutor->id || $user->tipo === 'veterinario' && $emergencia->cd_veterinario === $user->veterinario->id;
+        return $user->tipo === 'tutor' && $emergencia->tutor_id === $user->tutor->id || $user->tipo === 'veterinario' && $emergencia->cd_veterinario === $user->veterinario->id && $emergencia->cd_clinica === $user->clinica->id;
     }
 
     /**
