@@ -1,144 +1,157 @@
-# Obomvet V2 - Plataforma de Emergências Veterinárias
+# 🐾 Obomvet V2 - Plataforma de Emergências Veterinárias
 
-![Status](https://img.shields.io/badge/status--planejamento-orange) ![License](https://img.shields.io/badge/license-MIT-blue)
+![Status](https://img.shields.io/badge/status-em_desenvolvimento-green)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Version](https://img.shields.io/badge/version-2.0-orange)
+
+---
 
 ## 📋 Visão Geral do Projeto
 
-O **Obomvet V2** é uma plataforma online para comunicação rápida e eficiente entre tutores de animais e clínicas veterinárias em situações de emergência. Através de alertas geolocalizados, o sistema notifica automaticamente clínicas próximas do local do incidente, agilizando o atendimento e aumentando as chances de sucesso no socorro ao animal.
-
-## Objetivo Principal
-
-Reduzir o tempo de resposta em emergências veterinárias por meio de uma conexão direta e geolocalizada entre tutores e clínicas, garantindo atendimento rápido e adequado.
+O **Obomvet V2** é uma plataforma online para **comunicação rápida e eficiente** entre **tutores de animais**, **clínicas veterinárias** e **veterinários autônomos** em situações de emergência.  
+Através de **alertas geolocalizados**, o sistema notifica automaticamente as clínicas e profissionais mais próximos do local da ocorrência, **agilizando o atendimento** e **aumentando as chances de sucesso no socorro ao animal**.
 
 ---
 
-## 🎯 Regras de Negócio
+## 🎯 Objetivo Principal
 
-| ID   | Regra de Negócio                       | Descrição                                                                                             |
-| ---- | -------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| RN01 | Criação de Emergência por Tutor        | Apenas tutores registrados e autenticados podem criar alertas de emergência.                          |
-| RN02 | Gestão de Pets por Tutor               | Cada tutor pode cadastrar e gerenciar múltiplos pets vinculados à sua conta.                          |
-| RN03 | Notificação Automática por Proximidade | O sistema identifica clínicas dentro de um raio predeterminado a partir da localização da emergência. |
-| RN04 | Disparo Simultâneo de Notificações     | Todas as clínicas próximas recebem a notificação simultaneamente.                                     |
-| RN05 | Aceitação de Emergência por Clínicas   | Clínicas podem visualizar detalhes básicos e confirmar disponibilidade para atender.                  |
-| RN06 | Confirmação de Aceitação ao Tutor      | Após aceitação pela clínica, o tutor recebe notificação com os dados da clínica.                      |
-| RN07 | Proteção de Dados do Tutor             | Dados de contato e localização exata só são revelados após a clínica aceitar a emergência.            |
-| RN08 | Histórico de Atendimentos              | Cada emergência permite registro de histórico após ser estabelecida.                                  |
+Reduzir o tempo de resposta em emergências veterinárias por meio de uma **conexão direta, geolocalizada e automatizada** entre tutores e profissionais de atendimento veterinário.
 
 ---
 
-## 👥 Casos de Uso
+## 🧩 Documentos e Funcionalidades Principais
 
-### Atores
-
-* **Tutor**: Proprietário do animal que cria a emergência.
-* **Clínica**: Estabelecimento veterinário que responde às emergências.
-
-### Fluxos Principais
-
-| Ator    | Caso de Uso                       | Descrição                                                                                   |
-| ------- | --------------------------------- | ------------------------------------------------------------------------------------------- |
-| Tutor   | Cadastrar Pets                    | Cadastrar e gerenciar pets (espécie, raça, idade, condições médicas, etc.).                 |
-| Tutor   | Criar Alerta de Emergência        | Iniciar alerta, selecionar pet, descrever emergência e confirmar localização via GPS.       |
-| Tutor   | Visualizar Respostas das Clínicas | Visualizar notificações de clínicas que aceitaram o pedido.                                 |
-| Tutor   | Acompanhar Histórico              | Visualizar histórico completo de atendimentos por emergência.                               |
-| Clínica | Receber Notificação de Emergência | Receber notificações em tempo real sobre emergências na área.                               |
-| Clínica | Aceitar Emergência                | Analisar resumo e confirmar disponibilidade; ao aceitar, ganha acesso aos dados do tutor.   |
-| Clínica | Registrar Atendimento             | Adicionar informações ao histórico da emergência (diagnóstico, procedimentos, observações). |
+| Nº | Documento / Caso de Uso | Ator Envolvido | Descrição |
+|----|--------------------------|----------------|------------|
+| 1  | **Cadastrar Pet** | Tutor | Cadastrar e gerenciar pets, incluindo espécie, raça, idade e condições médicas. |
+| 2  | **Criar Alerta de Emergência** | Tutor / Usuário Não Registrado | Criar alertas de emergência geolocalizados para notificar clínicas próximas. |
+| 3  | **Receber Notificação de Emergência** | Clínica / Veterinário Autônomo | Receber notificações de emergência com base na localização e disponibilidade. |
+| 4  | **Aceitar Emergência** | Clínica / Veterinário Autônomo | Visualizar detalhes básicos da emergência e confirmar disponibilidade para atendimento. |
+| 5  | **Gerenciar Veterinários** | Clínica | Designar veterinários específicos para atender emergências, otimizando o atendimento. |
+| 6  | **Gerenciar Disponibilidade** | Veterinário Autônomo | Definir áreas de atuação, horários de disponibilidade e tipos de serviço. |
+| 7  | **Transcrever Áudio** | Sistema | Transcrever o relato de áudio do tutor para texto e preencher automaticamente o formulário de emergência. |
+| 8  | **Visualizar Clínicas no Mapa** | Tutor | Exibir clínicas cadastradas em um mapa com filtros de especialidade e horário. |
+| 9  | **Definir Área de Cobertura da Clínica** | Clínica | Definir área geográfica de atendimento para limitar alertas recebidos. |
+| 10 | **Filtrar Alertas por Tipo de Emergência** | Clínica | Configurar filtros para receber alertas apenas de tipos específicos (ex: fratura, intoxicação, parto). |
 
 ---
 
-## 📝 Requisitos
+## 🧠 Regras de Negócio
 
-### Requisitos Funcionais
+| ID   | Regra de Negócio | Descrição |
+|------|------------------|------------|
+| RN01 | Comunicação rápida e eficiente | O aplicativo deve garantir comunicação rápida e direta entre tutores e clínicas. |
+| RN02 | Gestão de pets por tutor | O tutor pode cadastrar e gerenciar múltiplos pets vinculados à sua conta. |
+| RN03 | Criação de emergência por tutor (atualizada) | Usuários não registrados podem criar alertas de emergência; o cadastro é opcional e pode ser feito após o envio do alerta. |
+| RN04 | Notificação automática por proximidade | O sistema identifica clínicas dentro de um raio pré-definido a partir da localização da emergência. |
+| RN05 | Disparo simultâneo de notificações | Todas as clínicas próximas recebem o alerta ao mesmo tempo. |
+| RN06 | Aceitação de emergência por clínicas | Clínicas e veterinários autônomos podem visualizar detalhes básicos e confirmar disponibilidade. |
+| RN07 | Confirmação de aceitação ao tutor | Após aceitação, o tutor recebe os dados da clínica para organizar o transporte do pet. |
+| RN08 | Designação de veterinários por clínica | Clínicas podem designar profissionais específicos para emergências conforme especialidade e disponibilidade. |
+| RN09 | Atendimento por veterinários autônomos | Veterinários independentes podem definir áreas de atuação e horários e receber alertas compatíveis. |
+| RN10 | Transcrição de áudio para texto | O tutor pode relatar a emergência por áudio, que será transcrito automaticamente e usado para preencher o formulário. |
+| RN11 | Mapa de clínicas | Tutores podem visualizar clínicas cadastradas, com filtros por especialidade, horário e distância. |
+| RN12 | Proteção de dados (LGPD) | Dados pessoais e de localização exata do tutor só são exibidos após a aceitação da emergência pela clínica. Uma solução de perímetro visual é usada para evitar conflito com a LGPD. |
 
-| ID   | Requisito Funcional                                                              | Categoria  |
-| ---- | -------------------------------------------------------------------------------- | ---------- |
-| RF01 | Registrar e autenticar utilizadores (tutores e clínicas).                        | Técnica    |
-| RF02 | Tutores podem cadastrar e gerenciar múltiplos pets com dados completos.          | Utilizador |
-| RF03 | Formulário para tutor criar emergências, selecionando pet e descrevendo o caso.  | Utilizador |
-| RF04 | Captura automática das coordenadas GPS do local da emergência.                   | Técnica    |
-| RF05 | Identificar clínicas registadas dentro de um raio pré-definido.                  | Negócio    |
-| RF06 | Enviar notificação push para todas as clínicas identificadas.                    | Técnica    |
-| RF07 | Interface para clínicas visualizarem emergências pendentes com detalhes básicos. | Utilizador |
-| RF08 | Permitir que clínica aceite a emergência e notifique o tutor.                    | Negócio    |
-| RF09 | Disponibilizar info de contacto do tutor somente após aceitação pela clínica.    | Negócio    |
-| RF10 | Clínicas registarem histórico de atendimentos por emergência.                    | Negócio    |
-| RF11 | Manter histórico completo de emergências e atendimentos para tutores e clínicas. | Negócio    |
+---
 
-### Requisitos Não Funcionais
+## ⚙️ Requisitos Funcionais
 
-* **Desempenho**: Latência baixa no envio de notificações — meta: < 5s entre criação do alerta e recebimento.
-* **Confiabilidade**: Disponibilidade alvo de **99,5% uptime**.
-* **Segurança**: Criptografia em trânsito e em repouso; controles de acesso e auditoria.
-* **Usabilidade**: Interface simples e direta; mínimo de passos para criar alertas em situações de stress.
-* **Compatibilidade**: Suporte às versões estáveis mais recentes de iOS e Android.
-* **Escalabilidade**: Suportar picos de uso durante emergências múltiplas.
+| ID | Requisito Funcional | Categoria |
+|----|----------------------|------------|
+| RF01 | Registrar e autenticar tutores, clínicas e veterinários. | Técnica |
+| RF02 | Cadastrar e gerenciar múltiplos pets com informações completas. | Usuário |
+| RF03 | Criar emergências com pet, descrição e localização. | Usuário |
+| RF04 | Capturar automaticamente as coordenadas GPS da emergência. | Técnica |
+| RF05 | Identificar clínicas e veterinários próximos. | Negócio |
+| RF06 | Enviar notificações push em tempo real para clínicas elegíveis. | Técnica |
+| RF07 | Interface de listagem de emergências pendentes para clínicas. | Usuário |
+| RF08 | Configurar área de cobertura de clínicas para receber alertas. | Negócio |
+| RF09 | Configurar área de cobertura de veterinários autônomos. | Negócio |
+| RF10 | Relatar emergências por áudio. | Usuário |
+| RF11 | Transcrever áudio para texto automaticamente. | Técnica |
+| RF12 | Exibir mapa com todas as clínicas cadastradas. | Técnica |
+| RF13 | Filtrar clínicas por especialidade, horário e outros critérios. | Usuário |
+| RF14 | Notificar tutor após aceitação de emergência. | Técnica |
+| RF15 | Exibir histórico de emergências e atendimentos por pet. | Usuário |
+| RF16 | Permitir contato direto com clínica (telefone ou WhatsApp). | Usuário |
+| RF17 | Tutor pode cancelar alerta de emergência. | Usuário |
+| RF18 | Veterinários podem acessar histórico de atendimentos. | Negócio |
+| RF19 | Clínicas podem gerenciar seus veterinários e designar atendimentos. | Negócio |
+| RF20 | Veterinários autônomos podem gerenciar disponibilidade e serviços. | Negócio |
+
+---
+
+## 📊 Requisitos Não Funcionais
+
+* **Desempenho:** Latência máxima de 5s entre criação e notificação.
+* **Confiabilidade:** Disponibilidade alvo de 99,5%.
+* **Segurança:** Criptografia TLS e controle de acesso baseado em roles.
+* **Usabilidade:** Interface simples e otimizada para uso em emergências.
+* **Compatibilidade:** Compatível com navegadores modernos e apps Android/iOS.
+* **Escalabilidade:** Suporte a múltiplas emergências simultâneas.
 
 ---
 
 ## 🏗️ Modelo de Dados (Entidades Principais)
 
-* **Tutor**: id, nome, email, telefone, localização (coordenadas), dados de verificação
-* **Pet**: id, tutor_id, nome, espécie, raça, idade, histórico médico, alergias
-* **Emergência**: id, tutor_id, pet_id, descrição, latitude, longitude, status, data_criação
-* **Clínica**: id, nome, endereço, localização (coordenadas), raio_atendimento, contatos
-* **Atendimento**: id, emergencia_id, clinica_id, data_hora, procedimentos, observações
+- **Tutor:** id, nome, email, telefone, localização (lat, long)
+- **Pet:** id, tutor_id, nome, espécie, raça, idade, histórico médico
+- **Emergência:** id, tutor_id, pet_id, descrição, nível_urgência, localização, status, data_criação
+- **Clínica:** id, nome, endereço, raio_atendimento, especialidades, localização
+- **Veterinário:** id, nome, clínica_id (opcional), área_atuacao, disponibilidade
+- **Atendimento:** id, emergencia_id, clinica_id, veterinario_id, data_hora, diagnóstico, observações
 
 ---
 
-## 🛠️ Tecnologias e Implementação (Sugestão de Stack)
+## 🧱 Arquitetura e Tecnologias
 
-* **Frontend:** React Native ou Flutter (aplicativo móvel)
-* **Backend:** Node.js / Python (FastAPI) / Java (Spring Boot) — API REST
-* **Banco de Dados:** PostgreSQL (recomendado) / MongoDB
-* **Geolocalização:** Google Maps Platform ou Mapbox
-* **Notificações:** Firebase Cloud Messaging (FCM)
-* **Armazenamento de Arquivos:** AWS S3 ou Google Cloud Storage
-
-### Integrações Necessárias
-
-* API de Geolocalização (cálculo de proximidade)
-* Serviço de Push Notifications (FCM)
-* Gateways de Pagamento (se oferecer serviços pagos)
+| Camada | Tecnologia |
+|--------|-------------|
+| **Frontend** | React ou React Native |
+| **Backend** | Laravel (PHP) |
+| **Banco de Dados** | MySQL ou PostgreSQL |
+| **Geolocalização** | Google Maps API / Mapbox |
+| **Notificações** | Firebase Cloud Messaging (FCM) |
+| **Armazenamento** | AWS S3 / Google Cloud Storage |
 
 ---
 
-## 🔐 Considerações de Segurança
+## 🔐 Segurança
 
-* Autenticação com JWT
-* Criptografia TLS para todas as comunicações
-* Criptografia de campos sensíveis em repouso (ex.: dados de contato)
-* Controle de acesso baseado em roles (tutor vs clínica)
-* Logs e auditoria para ações sensíveis
-* Validação e sanitização rigorosa de inputs
+- Autenticação por **JWT**
+- Comunicação via **HTTPS (TLS)**
+- Criptografia de dados sensíveis
+- Controle de acesso por **papel (role-based access)**
+- Logs e auditoria para rastreabilidade
+- Cumprimento parcial da **LGPD** (com mitigação via perímetro de visualização)
 
 ---
 
-## 📦 Implantação (Pontos Importantes)
+## 🚀 Implantação e Infraestrutura
 
-* Deploy do backend em infraestrutura redundante (ex.: AWS ECS/EKS, GCP Cloud Run)
-* Uso de CDN e balanceamento de carga para reduzir latência
-* Monitoramento e alertas (Prometheus/Grafana, Sentry)
-* Backup periódico do banco de dados e testes de restauração
+- **Backend:** Hospedado em ambiente redundante (AWS ECS/EKS, GCP Cloud Run, etc.)
+- **Frontend:** Deploy via Vercel ou Netlify
+- **Banco de Dados:** PostgreSQL gerenciado (AWS RDS)
+- **Monitoramento:** Prometheus, Grafana e Sentry
+- **Backups:** Automáticos com política de retenção semanal
+
+---
+
+## 🧩 Observações Importantes
+
+> 🔒 **LGPD e RN07:**  
+> A exibição de dados pessoais do tutor só ocorre após a aceitação da emergência pela clínica.  
+> Antes disso, é exibido apenas um **perímetro aproximado** da ocorrência, garantindo conformidade com a legislação.
+
+> 🩺 **Prontuário Eletrônico:**  
+> Cada atendimento gera um registro contendo dados do animal, histórico médico, diagnóstico e prescrição.
 
 ---
 
 ## 🤝 Contribuindo
 
-1. Fork este repositório
-2. Crie uma branch com sua feature: `git checkout -b feature/nome-da-feature`
-3. Faça commits claros e atômicos
-4. Abra um Pull Request descrevendo a mudança
-
----
-
-## 🧾 Licença
-
-Este projeto pode ser licenciado sob MIT — ajuste conforme necessidade.
-
----
-
-> *Este README será atualizado conforme o desenvolvimento do projeto avança e novas funcionalidades são implementadas.*
-
-*Gerado com base na especificação fornecida.*
+1. Faça um fork deste repositório  
+2. Crie uma branch para sua feature:  
+   ```bash
+   git checkout -b feature/nome-da-feature
