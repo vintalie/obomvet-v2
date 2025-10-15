@@ -61,11 +61,13 @@ Route::group(['as' => 'api.'], function() {
     Orion::hasOneResource('usuario','veterinario', VeterinarioController::class)->withSoftDeletes();
 
 
-    Orion::resource(
-        name: '/emergencias',
-        controller: EmergenciaController::class
-    );
-    Orion::hasManyResource('emergencia', 'historico', HistoricoAtendimentoController::class)->withSoftDeletes();
+   Orion::resource(
+    name: '/emergencias',
+    controller: EmergenciaController::class
+);
+
+Orion::hasManyResource('emergencia', 'historico', HistoricoAtendimentoController::class)
+    ->withSoftDeletes();
 
 
     

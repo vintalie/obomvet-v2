@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import BackButton from "../components/BackButton";
+import Navbar from "../components/Navbar";
 
 interface EmergencyForm {
   pet_id: string;
@@ -43,7 +43,6 @@ export default function ReportInput() {
     { id: "3", name: "Thor" },
   ];
 
-  // Sincroniza transcrição com textarea e formData
   useEffect(() => {
     if (transcribedText) {
       setTextInput(transcribedText);
@@ -136,7 +135,7 @@ export default function ReportInput() {
     const token = localStorage.getItem("token");
 
     if (!formData.descricao_sintomas.trim()) {
-      alert("Por favor, descreva os sintomas (grave ou digite)");
+      alert("Por favor, descreva os sintomas");
       return;
     }
 
@@ -151,14 +150,12 @@ export default function ReportInput() {
       };
 
       const headers = new Headers({ "Content-Type": "application/json" });
-
       const fetchOptions: RequestInit = {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
       };
 
-      // Caso esteja usando Sanctum (cookies HttpOnly)
       const USE_SANCTUM = true;
       if (USE_SANCTUM) {
         fetchOptions.credentials = "include";
@@ -168,9 +165,17 @@ export default function ReportInput() {
       }
 
       const res = await fetch("http://127.0.0.1:8000/api/emergencias", fetchOptions);
-      const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message || "Erro ao enviar relatório");
+      let data: any;
+      try {
+        data = await res.clone().json();
+      } catch {
+        const text = await res.text();
+        console.error("Resposta do backend não é JSON:", text);
+        throw new Error("Erro inesperado do servidor");
+      }
+
+      if (!res.ok) throw new Error(data?.message || "Erro ao enviar relatório");
 
       setReport("Emergência registrada com sucesso!");
       setFormData({ pet_id: "", descricao_sintomas: "", nivel_urgencia: "media" });
@@ -178,111 +183,115 @@ export default function ReportInput() {
       setTranscribedText("");
       setAiResponse(null);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Erro inesperado");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="p-6 max-w-xl mx-auto mt-10">
-      <BackButton to="/" />
-      <h1 className="text-2xl font-bold mb-4">Relato de Emergência</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-300 flex flex-col">
+      <Navbar />
 
-      {isRecording && <p className="text-gray-500 mb-2">🎙 Gravando...</p>}
-      {isTranscribing && <p className="text-blue-600 mb-2">Transcrevendo áudio...</p>}
-      {error && <p className="text-red-600 mb-2">{error}</p>}
-      {report && <p className="text-green-600 mb-2">{report}</p>}
+      <div className="p-6 max-w-xl mx-auto mt-32">
+        <h1 className="text-2xl font-bold mb-4">Relato de Emergência</h1>
 
-      {aiResponse && (
-        <div className="p-4 bg-blue-50 border rounded mb-4">
-          <h2 className="font-semibold text-blue-800 mb-2">Análise da IA</h2>
-          {aiResponse.preenchidos && (
-            <p className="text-sm text-gray-700 mb-2">
-              Campos identificados automaticamente: {Object.keys(aiResponse.preenchidos).join(", ")}
-            </p>
-          )}
-          {missingFields.length > 0 && (
-            <p className="text-sm text-red-600">
-              ⚠️ A IA não conseguiu identificar: {missingFields.join(", ")} — complete abaixo.
-            </p>
-          )}
-        </div>
-      )}
+        {isRecording && <p className="text-gray-500 mb-2">🎙 Gravando...</p>}
+        {isTranscribing && <p className="text-blue-600 mb-2">Transcrevendo áudio...</p>}
+        {error && <p className="text-red-600 mb-2">{error}</p>}
+        {report && <p className="text-green-600 mb-2">{report}</p>}
 
-      <div className="space-y-4 mb-6">
-        <div>
-          <label className="block text-sm font-medium mb-2">Selecione o Pet:</label>
-          <select
-            value={formData.pet_id}
-            onChange={(e) => setFormData((p) => ({ ...p, pet_id: e.target.value }))}
-            className="w-full p-2 border rounded"
-          >
-            <option value="">Selecione um pet</option>
-            {pets.map((pet) => (
-              <option key={pet.id} value={pet.id}>
-                {pet.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Nível de Urgência:</label>
-          <select
-            value={formData.nivel_urgencia}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, nivel_urgencia: e.target.value as EmergencyForm["nivel_urgencia"] }))
-            }
-            className="w-full p-2 border rounded"
-          >
-            <option value="baixa">Baixa</option>
-            <option value="media">Média</option>
-            <option value="alta">Alta</option>
-            <option value="critica">Crítica</option>
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Descrição dos Sintomas:</label>
-        <div className="flex gap-2 mb-3">
-          {!isRecording ? (
-            <button onClick={startRecording} className="bg-red-600 text-white px-4 py-2 rounded">
-              🎤 Iniciar Gravação
-            </button>
-          ) : (
-            <button onClick={stopRecording} className="bg-gray-600 text-white px-4 py-2 rounded">
-              ⏹️ Parar
-            </button>
-          )}
-        </div>
-
-        {transcribedText && (
-          <div className="p-3 bg-blue-50 rounded mb-3">
-            <p className="text-sm text-gray-600 mb-1">Texto transcrito:</p>
-            <p className="text-gray-800">{transcribedText}</p>
+        {aiResponse && (
+          <div className="p-4 bg-blue-50 border rounded mb-4">
+            <h2 className="font-semibold text-blue-800 mb-2">Análise da IA</h2>
+            {aiResponse.preenchidos && (
+              <p className="text-sm text-gray-700 mb-2">
+                Campos identificados automaticamente: {Object.keys(aiResponse.preenchidos).join(", ")}
+              </p>
+            )}
+            {missingFields.length > 0 && (
+              <p className="text-sm text-red-600">
+                ⚠️ A IA não conseguiu identificar: {missingFields.join(", ")} — complete abaixo.
+              </p>
+            )}
           </div>
         )}
 
-        <textarea
-          value={textInput}
-          onChange={(e) => {
-            setTextInput(e.target.value);
-            setFormData((p) => ({ ...p, descricao_sintomas: e.target.value }));
-          }}
-          placeholder="Descreva os sintomas"
-          className="w-full p-3 border rounded mb-2 h-32"
-        />
-      </div>
+        <div className="space-y-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">Selecione o Pet:</label>
+            <select
+              value={formData.pet_id}
+              onChange={(e) => setFormData((p) => ({ ...p, pet_id: e.target.value }))}
+              className="w-full p-2 border rounded"
+            >
+              <option value="">Selecione um pet</option>
+              {pets.map((pet) => (
+                <option key={pet.id} value={pet.id}>
+                  {pet.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700"
-      >
-        {loading ? "Enviando..." : "Enviar Relatório"}
-      </button>
+          <div>
+            <label className="block text-sm font-medium mb-2">Nível de Urgência:</label>
+            <select
+              value={formData.nivel_urgencia}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, nivel_urgencia: e.target.value as EmergencyForm["nivel_urgencia"] }))
+              }
+              className="w-full p-2 border rounded"
+            >
+              <option value="baixa">Baixa</option>
+              <option value="media">Média</option>
+              <option value="alta">Alta</option>
+              <option value="critica">Crítica</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Descrição dos Sintomas:</label>
+          <div className="flex gap-2 mb-3">
+            {!isRecording ? (
+              <button onClick={startRecording} className="bg-red-600 text-white px-4 py-2 rounded">
+                🎤 Iniciar Gravação
+              </button>
+            ) : (
+              <button onClick={stopRecording} className="bg-gray-600 text-white px-4 py-2 rounded">
+                ⏹️ Parar
+              </button>
+            )}
+          </div>
+
+          {transcribedText && (
+            <div className="p-3 bg-blue-50 rounded mb-3">
+              <p className="text-sm text-gray-600 mb-1">Texto transcrito:</p>
+              <p className="text-gray-800">{transcribedText}</p>
+            </div>
+          )}
+
+          <textarea
+            value={textInput}
+            onChange={(e) => {
+              setTextInput(e.target.value);
+              setFormData((p) => ({ ...p, descricao_sintomas: e.target.value }));
+            }}
+                       placeholder="Descreva os sintomas"
+            className="w-full p-3 border rounded mb-2 h-32"
+          />
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700"
+        >
+          {loading ? "Enviando..." : "Enviar Relatório"}
+        </button>
+      </div>
     </div>
   );
 }
+

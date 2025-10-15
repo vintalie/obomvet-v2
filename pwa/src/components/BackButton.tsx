@@ -6,11 +6,10 @@ export default function BackButton({ to }: { to?: string }) {
   return (
     <button
       type="button"
-      className="mb-4 px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700 flex items-center gap-2"
+      className="p-1 text-gray-700 hover:text-gray-900"
       onClick={() => to ? navigate(to) : navigate(-1)}
     >
-      <MdArrowBack size={18} />
-      Voltar
+      <MdArrowBack size={24} />
     </button>
   );
 }

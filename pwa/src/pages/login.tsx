@@ -1,7 +1,7 @@
 import { useState } from "react";
-import BackButton from "../components/BackButton";
 import { useNavigate, Link } from "react-router-dom";
 import { setTokenFallback } from '../utils/auth';
+import { ArrowLeft } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -16,7 +16,7 @@ export default function Login() {
     setError("");
 
     try {
-  const res = await fetch("http://localhost:8000/api/auth/login", {
+      const res = await fetch("http://localhost:8000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -39,16 +39,26 @@ export default function Login() {
 
   return (
     <div className="p-6 max-w-md mx-auto mt-20">
-      <BackButton to="/" />
-      <h1 className="text-2xl font-bold mb-4 text-center">Login</h1>
-      {error && <p className="text-red-500 mb-2">{error}</p>}
+      {/* Botão voltar apenas com seta */}
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="mb-4 flex items-center text-gray-700 hover:text-gray-900"
+      >
+        <ArrowLeft size={24} />
+      </button>
+
+      <h1 className="text-2xl font-bold mb-4 text-center text-blue-700">Login</h1>
+
+      {error && <p className="text-red-500 mb-2 text-center">{error}</p>}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 border rounded"
+          className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         />
         <input
@@ -56,19 +66,23 @@ export default function Login() {
           placeholder="Senha"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 border rounded"
+          className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         />
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+          className="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition font-semibold"
         >
           {loading ? "Entrando..." : "Login"}
         </button>
       </form>
-      <p className="mt-4 text-center">
-        Não tem conta? <Link to="/register" className="text-blue-600">Cadastre-se</Link>
+
+      <p className="mt-4 text-center text-gray-700">
+        Não tem conta?{" "}
+        <Link to="/register" className="text-blue-600 hover:underline">
+          Cadastre-se
+        </Link>
       </p>
     </div>
   );

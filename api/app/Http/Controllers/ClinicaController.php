@@ -3,12 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Models\Clinica;
-use App\Policies\ClinicaPolicy;
 use Orion\Http\Controllers\Controller;
 
 class ClinicaController extends Controller
 {
-   protected $model = Clinica::class;
-   protected $policy = ClinicaPolicy::class;
-   
+    protected $model = Clinica::class;
+
+    public function index()
+    {
+        $clinicas = Clinica::all()->map(function ($clinica) {
+            [$lat, $lng] = explode(',', $clinica->localizacao);
+
+            return [
+                'id' => $clinica->id,
+                'nome' => $clinica->nome_fantasia,
+                'endereco' => $clinica->endereco,
+                'telefone_emergencia' => $clinica->telefone_emergencia,
+                'disponivel_24h' => $clinica->disponivel_24h,
+                'latitude' => (float) $lat,
+                'longitude' => (float) $lng,
+            ];
+        });
+
+        return response()->json($clinicas);
+    }
 }
