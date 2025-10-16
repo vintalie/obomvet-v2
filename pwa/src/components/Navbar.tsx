@@ -1,53 +1,115 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, PawPrint, User } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const menuVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.2, ease: "easeIn" } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      x: 0,
+      transition: { delay: 0.05 * i, duration: 0.3 },
+    }),
+  };
+
+  const navLinks = [
+    { label: "Home", path: "/" },
+    { label: "Funcionalidades", path: "/features" },
+    { label: "Sobre Nós", path: "/about" },
+  ];
+
   return (
-    <nav className="fixed w-full top-0 left-0 z-30 bg-white/90 backdrop-blur-md shadow-lg px-12 py-6 flex items-center justify-between">
-      {/* Logo como link */}
+    <nav className="fixed w-full top-0 left-0 z-30 bg-white/95 backdrop-blur-md shadow-md px-8 md:px-12 py-4 flex items-center justify-between">
+      {/* Logo */}
       <Link to="/" className="flex items-center gap-3">
-        <PawPrint className="text-blue-700 w-9 h-9" />
-        <span className="text-3xl font-extrabold text-blue-700">oBomVet</span>
+        <PawPrint className="text-[#004E64] w-9 h-9" />
+        <span className="text-3xl font-extrabold text-[#004E64]">oBomVet</span>
       </Link>
 
       {/* Menu Desktop */}
       <div className="hidden md:flex items-center gap-10 text-lg">
-        <Link to="/" className="text-blue-700 font-semibold hover:underline">Home</Link>
-        <Link to="/features" className="text-blue-700 font-semibold hover:underline">Funcionalidades</Link>
-        <Link to="/about" className="text-blue-700 font-semibold hover:underline">Sobre Nós</Link>
+        {navLinks.map(({ label, path }) => (
+          <Link
+            key={path}
+            to={path}
+            className="text-[#004E64] font-semibold hover:text-[#25A18E] transition-colors duration-200"
+          >
+            {label}
+          </Link>
+        ))}
 
-        {/* Ícone de usuário */}
         <Link
           to="/login"
-          className="bg-gray-500 w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-gray-600 transition"
+          className="bg-[#25A18E] w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-[#208B7C] transition-colors"
         >
           <User size={24} />
         </Link>
       </div>
 
-      {/* Menu Mobile */}
-      <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-blue-700 focus:outline-none">
+      {/* Botão Menu Mobile */}
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="md:hidden text-[#004E64] focus:outline-none"
+      >
         {menuOpen ? <X size={32} /> : <Menu size={32} />}
       </button>
 
-      {menuOpen && (
-        <div className="absolute top-full left-0 w-full bg-blue-800 bg-opacity-95 flex flex-col items-center py-6 gap-6 md:hidden text-white text-lg">
-          <Link to="/" onClick={() => setMenuOpen(false)} className="font-semibold hover:underline">Home</Link>
-          <Link to="/features" onClick={() => setMenuOpen(false)} className="font-semibold hover:underline">Funcionalidades</Link>
-          <Link to="/about" onClick={() => setMenuOpen(false)} className="font-semibold hover:underline">Sobre Nós</Link>
-
-          <Link
-            to="/login"
-            onClick={() => setMenuOpen(false)}
-            className="bg-gray-500 w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-gray-600 transition"
+      {/* Menu Mobile Animado */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            className="absolute top-full left-0 w-full bg-[#004E64] flex flex-col items-center py-6 gap-6 md:hidden text-white text-lg"
+            variants={menuVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
-            <User size={24} />
-          </Link>
-        </div>
-      )}
+            {navLinks.map(({ label, path }, i) => (
+              <motion.div
+                key={path}
+                custom={i}
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+              >
+                <Link
+                  to={path}
+                  onClick={() => setMenuOpen(false)}
+                  className="font-semibold hover:text-[#25A18E] transition-colors"
+                >
+                  {label}
+                </Link>
+              </motion.div>
+            ))}
+
+            <motion.div
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              custom={3}
+            >
+              <Link
+                to="/login"
+                onClick={() => setMenuOpen(false)}
+                className="bg-[#25A18E] w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-[#208B7C] transition-colors"
+              >
+                <User size={24} />
+              </Link>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
