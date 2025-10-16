@@ -3,33 +3,31 @@
 namespace App\Http\Controllers;
 
 use App\Models\Emergencia;
-use App\Policies\EmergenciaPolicy;
-use Orion\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
 class EmergenciaController extends Controller
 {
     /**
-     * Model que o Orion vai gerenciar
+     * Criação pública de emergência (sem login)
      */
-    protected $model = Emergencia::class;
-
-    /**
-     * Policy para controlar permissões
-     */
-    protected $policy = EmergenciaPolicy::class;
-
-    /**
-     * Sobrescreve o create do Orion para permitir criação pública
-     */
-    public function create(array $data)
+    public function store(Request $request)
     {
-        // Criação sem necessidade de usuário logado
-        return $this->model::create($data);
-    }
+        $validated = $request->validate([
+            'descricao_sintomas' => 'required|string|max:500',
+            'nivel_urgencia' => 'required|string|in:baixa,media,alta,critica',
+            'pet_id' => 'nullable|integer|exists:pets,id',
+        ]);
 
-    /**
-     * Caso queira outras ações protegidas, não sobrescreva.
-     * Orion aplicará a policy automaticamente em update, delete, etc.
-     */
+        $emergencia = Emergencia::create([
+            'descricao_sintomas' => $validated['descricao_sintomas'],
+            'nivel_urgencia' => $validated['nivel_urgencia'],
+            'pet_id' => $validated['pet_id'] ?? null,
+            'status' => 'pendente',
+        ]);
+
+        return response()->json([
+            'message' => 'Emergência criada com sucesso!',
+            'data' => $emergencia,
+        ], 201);
+    }
 }

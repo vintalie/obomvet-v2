@@ -132,8 +132,6 @@ export default function ReportInput() {
   }
 
   async function handleSubmit() {
-    const token = localStorage.getItem("token");
-
     if (!formData.descricao_sintomas.trim()) {
       alert("Por favor, descreva os sintomas");
       return;
@@ -144,36 +142,39 @@ export default function ReportInput() {
     setReport(null);
 
     try {
+      // Converte pet_id corretamente
+      let petId: number | null = null;
+      if (formData.pet_id.trim() !== "") {
+        const parsed = Number(formData.pet_id);
+        if (!isNaN(parsed)) petId = parsed;
+      }
+
+      const validUrgencias: EmergencyForm["nivel_urgencia"][] = [
+        "baixa",
+        "media",
+        "alta",
+        "critica",
+      ];
+      const nivelUrgencia = validUrgencias.includes(formData.nivel_urgencia)
+        ? formData.nivel_urgencia
+        : "media";
+
       const payload = {
-        ...formData,
-        pet_id: formData.pet_id ? parseInt(formData.pet_id) : null,
+        descricao_sintomas: formData.descricao_sintomas.trim(),
+        nivel_urgencia: nivelUrgencia,
+        pet_id: petId,
       };
 
-      const headers = new Headers({ "Content-Type": "application/json" });
-      const fetchOptions: RequestInit = {
+      const res = await fetch("http://localhost:8000/api/emergencias", {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
         body: JSON.stringify(payload),
-      };
+      });
 
-      const USE_SANCTUM = true;
-      if (USE_SANCTUM) {
-        fetchOptions.credentials = "include";
-        headers.delete("Authorization");
-      } else if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-      }
-
-      const res = await fetch("http://127.0.0.1:8000/api/emergencias", fetchOptions);
-
-      let data: any;
-      try {
-        data = await res.clone().json();
-      } catch {
-        const text = await res.text();
-        console.error("Resposta do backend não é JSON:", text);
-        throw new Error("Erro inesperado do servidor");
-      }
+      const data = await res.json();
 
       if (!res.ok) throw new Error(data?.message || "Erro ao enviar relatório");
 
@@ -219,8 +220,9 @@ export default function ReportInput() {
 
         <div className="space-y-4 mb-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Selecione o Pet:</label>
+            <label className="block text-sm font-medium mb-2" htmlFor="pet-select">Selecione o Pet:</label>
             <select
+              id="pet-select"
               value={formData.pet_id}
               onChange={(e) => setFormData((p) => ({ ...p, pet_id: e.target.value }))}
               className="w-full p-2 border rounded"
@@ -235,8 +237,9 @@ export default function ReportInput() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Nível de Urgência:</label>
+            <label className="block text-sm font-medium mb-2" htmlFor="urgencia-select">Nível de Urgência:</label>
             <select
+              id="urgencia-select"
               value={formData.nivel_urgencia}
               onChange={(e) =>
                 setFormData((p) => ({ ...p, nivel_urgencia: e.target.value as EmergencyForm["nivel_urgencia"] }))
@@ -252,7 +255,7 @@ export default function ReportInput() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Descrição dos Sintomas:</label>
+          <label className="block text-sm font-medium mb-2" htmlFor="descricao-textarea">Descrição dos Sintomas:</label>
           <div className="flex gap-2 mb-3">
             {!isRecording ? (
               <button onClick={startRecording} className="bg-red-600 text-white px-4 py-2 rounded">
@@ -273,12 +276,13 @@ export default function ReportInput() {
           )}
 
           <textarea
+            id="descricao-textarea"
             value={textInput}
             onChange={(e) => {
               setTextInput(e.target.value);
               setFormData((p) => ({ ...p, descricao_sintomas: e.target.value }));
             }}
-                       placeholder="Descreva os sintomas"
+            placeholder="Descreva os sintomas"
             className="w-full p-3 border rounded mb-2 h-32"
           />
         </div>
@@ -294,4 +298,3 @@ export default function ReportInput() {
     </div>
   );
 }
-

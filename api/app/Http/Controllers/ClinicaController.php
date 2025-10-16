@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Clinica;
+use Orion\Http\Requests\Request;
 use Orion\Http\Controllers\Controller;
 
 class ClinicaController extends Controller
 {
     protected $model = Clinica::class;
 
-    public function index()
+    public function index(Request $request)
     {
         $clinicas = Clinica::all()->map(function ($clinica) {
             [$lat, $lng] = explode(',', $clinica->localizacao);

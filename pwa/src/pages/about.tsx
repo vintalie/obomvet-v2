@@ -1,56 +1,14 @@
 import { Link } from "react-router-dom";
 import React, { useState } from "react";
 import { Menu, X, PawPrint, User } from "lucide-react";
+import Navbar from "../components/Navbar";
 
 export default function About() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-300 flex flex-col">
-      {/* Navbar */}
-      <nav className="fixed w-full top-0 left-0 z-20 bg-white/70 backdrop-blur-sm shadow-md px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <PawPrint className="text-blue-700 w-7 h-7" />
-          <span className="text-2xl font-bold text-blue-700">oBomVet</span>
-        </div>
-
-        {/* Menu Desktop */}
-        <div className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-blue-700 font-semibold hover:underline">Home</Link>
-          <Link to="/features" className="text-blue-700 font-semibold hover:underline">Funcionalidades</Link>
-          <Link to="/about" className="text-blue-700 font-semibold hover:underline">Sobre Nós</Link>
-
-          {/* Ícone de usuário */}
-          <Link
-            to="/login"
-            className="bg-gray-500 w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-gray-600 transition"
-          >
-            <User size={20} />
-          </Link>
-        </div>
-
-        {/* Menu Mobile */}
-        <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-blue-700 focus:outline-none">
-          {menuOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
-
-        {menuOpen && (
-          <div className="absolute top-full left-0 w-full bg-blue-800 bg-opacity-90 flex flex-col items-center py-4 gap-4 md:hidden text-white">
-            <Link to="/" onClick={() => setMenuOpen(false)} className="font-semibold hover:underline">Home</Link>
-            <Link to="/features" onClick={() => setMenuOpen(false)} className="font-semibold hover:underline">Funcionalidades</Link>
-            <Link to="/about" onClick={() => setMenuOpen(false)} className="font-semibold hover:underline">Sobre Nós</Link>
-
-            {/* Ícone de usuário no menu mobile */}
-            <Link
-              to="/login"
-              onClick={() => setMenuOpen(false)}
-              className="bg-gray-500 w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-gray-600 transition"
-            >
-              <User size={20} />
-            </Link>
-          </div>
-        )}
-      </nav>
+      <Navbar />
 
       {/* Conteúdo principal */}
       <main className="flex-1 flex flex-col items-center justify-center pt-32 pb-16 px-8 gap-12">
