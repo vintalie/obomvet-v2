@@ -2,59 +2,42 @@
 
 namespace App\Policies;
 
-use Illuminate\Auth\Access\Response;
-use Illuminate\Auth\Access\HandlesAuthorization;
 use App\Models\Usuario;
 
 class UsuarioPolicy
 {
-    use HandlesAuthorization;
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(Usuario $user): bool
     {
         return $user->tipo === 'admin';
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(Usuario $authenticatedUser, Usuario $targetUser)
+    public function view(Usuario $auth, Usuario $target): bool
     {
-        // Permite acesso apenas se o ID do usuário autenticado for igual ao ID do usuário solicitado
-        return $authenticatedUser->id === $targetUser->id;
+        return $auth->id === $target->id || $auth->tipo === 'admin';
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(Usuario $user): bool
     {
         return $user->tipo === 'admin';
-
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(Usuario $authenticatedUser, Usuario $targetUser)
+    public function update(Usuario $auth, Usuario $target): bool
     {
-        // Permite acesso apenas se o ID do usuário autenticado for igual ao ID do usuário solicitado
-        return $authenticatedUser->id === $targetUser->id  || $authenticatedUser->tipo === 'admin';
+        return $auth->id === $target->id || $auth->tipo === 'admin';
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(Usuario $authenticatedUser, Usuario $targetUser)
+    public function delete(Usuario $auth, Usuario $target): bool
     {
-        // Permite acesso apenas se o ID do usuário autenticado for igual ao ID do usuário solicitado
-        return $authenticatedUser->id === $targetUser->id || $authenticatedUser->tipo === 'admin';
+        return $auth->id === $target->id || $auth->tipo === 'admin';
     }
 
-    /**
-     * Determine whether the user can restore the model.
-     */
+    public function restore(Usuario $user, Usuario $target): bool
+    {
+        return $user->tipo === 'admin';
+    }
 
+    public function forceDelete(Usuario $user, Usuario $target): bool
+    {
+        return $user->tipo === 'admin';
+    }
 }
