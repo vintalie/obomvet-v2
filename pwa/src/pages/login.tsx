@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { setTokenFallback } from "../utils/auth";
+import { setTokenFallback , setUserFallback} from '../utils/auth';
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
