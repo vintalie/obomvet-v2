@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Emergencia;
 use App\Policies\EmergenciaPolicy;
 use Illuminate\Http\Request;
+use App\Events\NovaEmergenciaGerada;
 
 use App\Services\DistanceService;
 use App\Events\EmergenciaCriada;
@@ -16,7 +17,7 @@ class EmergenciaController extends Controller
 {
 // use DisableAuthorization;
     /**
-     * Model que o Orion vai gerenciar
+     * Criação pública de emergência (sem login)
      */
     protected $model = Emergencia::class;
 
@@ -31,7 +32,7 @@ class EmergenciaController extends Controller
      */
     protected function afterCreate(Request $request, $emergencia)
     {
-        event(new NovaEmergenciaCriada($emergencia));
+        event(new EmergenciaCriada($emergencia));
     }
 
 }
