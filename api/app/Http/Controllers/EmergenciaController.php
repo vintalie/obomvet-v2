@@ -7,6 +7,7 @@ use App\Policies\EmergenciaPolicy;
 use Illuminate\Http\Request;
 
 use App\Services\DistanceService;
+use App\Events\EmergenciaCriada;
 
 use Orion\Concerns\DisableAuthorization;
 use Orion\Http\Controllers\Controller;
@@ -28,7 +29,9 @@ class EmergenciaController extends Controller
      * Se precisar sobrescrever algum método do Orion, pode fazer aqui.
      * Exemplo: customização do create para permitir criação sem login
      */
-    protected function afterCreate(Request $request, $post){
-
+    protected function afterCreate(Request $request, $emergencia)
+    {
+        event(new NovaEmergenciaCriada($emergencia));
     }
+
 }

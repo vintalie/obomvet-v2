@@ -2,15 +2,17 @@
 
 return [
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie', '*'],
-
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'broadcasting/auth'],
+    
+    'allowed_origins' => ['http://localhost:5173'],
+    
     'allowed_methods' => ['*'],
-
-    'allowed_origins' => ['*'], // ou use o domínio do seu front ex: ['http://localhost:5173']
-
-    'allowed_origins_patterns' => [],
-
+    
     'allowed_headers' => ['*'],
+    
+    'supports_credentials' => true,
+    
+    'allowed_origins_patterns' => [],
 
     'exposed_headers' => [],
 

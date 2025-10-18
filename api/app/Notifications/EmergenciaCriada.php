@@ -1,29 +1,35 @@
 <?php
 
-use App\Events\EmergenciaCriada;
+namespace App\Events;
+
+use App\Models\Emergencia;
+use Illuminate\Broadcasting\Channel;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 
-class HistoricoEmergenciaCriada implements ShouldBroadcast
+
+class EmergenciaCriada implements ShouldBroadcast
 {
-  use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, SerializesModels;
 
-  public $message;
+    public $emergencia;
 
-  public function __construct($message)
-  {
-      $this->message = $message;
-  }
+    public function __construct(Emergencia $emergencia)
+    {
+        $this->emergencia = $emergencia->load('pet', 'tutor');
+    }
 
-  public function broadcastOn()
-  {
-      return ['emergencia-criada'];
-  }
+    public function broadcastOn()
+    {
+        // Canal privado para veterinários
+        return new PrivateChannel('veterinarios');
+    }
 
-  public function broadcastAs($event)
-  {
-      return $event;
-  }
+    public function broadcastAs()
+    {
+        return 'nova-emergencia';
+    }
 }
