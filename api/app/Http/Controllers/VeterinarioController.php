@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Veterinario;
 use App\Policies\VeterinarioPolicy;
+use Orion\Concerns\DisableAuthorization;
 use Orion\Http\Controllers\Controller;
 
 class VeterinarioController extends Controller
 {
+// use DisableAuthorization;
    protected $model = Veterinario::class;
    protected $policy = VeterinarioPolicy::class;
 

@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use Orion\Concerns\DisableAuthorization;
 use App\Models\Usuario;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 
-class AutenticadorController extends Controller
+class AutenticadorController extends UsuarioController
 {
+// use DisableAuthorization;
     public function register(Request $request)
     {
         $registerUserData = [];

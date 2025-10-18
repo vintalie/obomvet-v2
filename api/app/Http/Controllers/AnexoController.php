@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Anexo;
 use App\Policies\AnexoPolicy;
+use Orion\Concerns\DisableAuthorization;
 use Orion\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
+
 class AnexoController extends Controller
 {
+// use DisableAuthorization;
    
    
    protected function beforeSave(Request $request, $anexable)

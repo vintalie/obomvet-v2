@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Orion\Concerns\DisableAuthorization;
 
 class IAController extends Controller
 {
+// use DisableAuthorization;
     public function transcribe(Request $request)
     {
         // 1️⃣ Tentar obter tutor logado (se existir)

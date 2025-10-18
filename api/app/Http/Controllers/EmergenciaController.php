@@ -8,10 +8,12 @@ use Illuminate\Http\Request;
 
 use App\Services\DistanceService;
 
+use Orion\Concerns\DisableAuthorization;
 use Orion\Http\Controllers\Controller;
 
 class EmergenciaController extends Controller
 {
+// use DisableAuthorization;
     /**
      * Model que o Orion vai gerenciar
      */
