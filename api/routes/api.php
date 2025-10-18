@@ -32,12 +32,12 @@ Route::post('auth/logout', [AutenticadorController::class, 'logout'])->middlewar
 Route::group(['as' => 'api.'], function() {
     
     Orion::resource(
-        name: '/usuarios',
+        name: 'usuarios',
         controller: UsuarioController::class
     )->middleware(['auth:sanctum']);
     
     Orion::resource(
-        name: '/tutores',
+        name: 'tutores',
         controller: TutorController::class
     )->middleware('auth:sanctum');
     
@@ -45,14 +45,14 @@ Route::group(['as' => 'api.'], function() {
     
     
     Orion::resource(
-        name: '/pets',
+        name: 'pets',
         controller: PetController::class
     )->middleware('auth:sanctum');
     
     Orion::hasManyResource('tutor', 'pet', PetController::class)->withSoftDeletes();
 
     Orion::resource(
-        name: '/clinicas',
+        name: 'clinicas',
         controller: ClinicaController::class
     )->middleware(['auth:sanctum']);
     
@@ -62,7 +62,7 @@ Route::group(['as' => 'api.'], function() {
 
     
     Orion::resource(
-        name: '/veterinarios',
+        name: 'veterinarios',
         controller: VeterinarioController::class
     )->middleware('auth:sanctum');
 
@@ -70,7 +70,7 @@ Route::group(['as' => 'api.'], function() {
 
 
     Orion::resource(
-        name: '/prontuarios',
+        name: 'prontuarios',
         controller: ProntuarioController::class
     )->middleware('auth:sanctum');
 
@@ -85,7 +85,7 @@ Route::group(['as' => 'api.'], function() {
 
 
     Orion::resource(
-        name: '/emergencias',
+        name: 'emergencias',
         controller: EmergenciaController::class
     );
     Orion::hasManyResource('emergencia', 'historico', HistoricoAtendimentoController::class)->withSoftDeletes();
@@ -96,7 +96,7 @@ Route::group(['as' => 'api.'], function() {
 
 
 
-Route::post('ia/transcribe', [IAController::class, 'transcribe']);
+Route::post('/ia/transcribe', [IAController::class, 'transcribe']);
 
 // Rota para verificar o e-mail
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
