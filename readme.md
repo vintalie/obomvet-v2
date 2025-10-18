@@ -119,7 +119,7 @@ Reduzir o tempo de resposta em emergências veterinárias por meio de uma **cone
 
 ## 🔐 Segurança
 
-- Autenticação por **JWT**
+- Autenticação por **API Token**
 - Comunicação via **HTTPS (TLS)**
 - Criptografia de dados sensíveis
 - Controle de acesso por **papel (role-based access)**
