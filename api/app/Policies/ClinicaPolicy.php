@@ -31,7 +31,7 @@ class ClinicaPolicy
      */
     public function create(Usuario $user): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -47,7 +47,7 @@ class ClinicaPolicy
      */
     public function delete(Usuario $user, Clinica $clinica): bool
     {
-        return false;
+         return $user->clinica->id === $clinica->id;
     }
 
     /**
