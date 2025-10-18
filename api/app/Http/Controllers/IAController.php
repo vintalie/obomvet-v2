@@ -7,60 +7,51 @@ use Illuminate\Support\Facades\Http;
 
 class IAController extends Controller
 {
-    // Analisar texto via IA
-    public function analyzeText(Request $request)
+    // Endpoint para transcrever áudio
+    public function transcribe(Request $request)
     {
-        $request->validate([
-            'text' => 'required|string',
+        $file = $request->file('file');
+
+        if (!$file) {
+            return response()->json(['error' => 'Nenhum arquivo enviado'], 400);
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+        ])->attach(
+            'file', fopen($file->getRealPath(), 'r'), $file->getClientOriginalName()
+        )->post('https://api.openai.com/v1/audio/transcriptions', [
+            'model' => 'whisper-1',
         ]);
 
-        $inputText = $request->text;
+        return $response->json();
+    }
 
-        try {
-            // Exemplo: chamada para OpenAI ou outro serviço de IA
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
-                'Content-Type' => 'application/json',
-            ])->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-4',
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => 'Responda sempre em JSON com preenchidos e faltando'
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => "Analise o texto do relatório: \"$inputText\" e retorne JSON como:
-                        {
-                          \"preenchidos\": {\"descricao_sintomas\": \"...\", \"nivel_urgencia\": \"...\"},
-                          \"faltando\": [\"campo1\", \"campo2\"]
-                        }"
-                    ]
-                ],
-                'temperature' => 0,
-            ]);
+    // Novo endpoint para analisar texto
+    public function analyzeText(Request $request)
+    {
+        $text = $request->input('text');
 
-            $body = $response->json();
-
-            // Tenta extrair JSON do conteúdo da IA
-            $content = $body['choices'][0]['message']['content'] ?? '';
-
-            // Garantir retorno JSON válido
-            $parsed = json_decode($content, true);
-            if (!$parsed) {
-                $parsed = [
-                    'preenchidos' => [],
-                    'faltando' => [],
-                ];
-            }
-
-            return response()->json($parsed);
-        } catch (\Exception $e) {
-            return response()->json([
-                'preenchidos' => [],
-                'faltando' => [],
-                'error' => $e->getMessage(),
-            ]);
+        if (!$text) {
+            return response()->json(['error' => 'Nenhum texto enviado'], 400);
         }
+
+        $response = Http::withHeaders([
+    'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+])->post('https://api.openai.com/v1/chat/completions', [
+    'model' => 'gpt-4',
+    'messages' => [
+        [
+            'role' => 'system',
+            'content' => 'Responda **somente** com JSON válido. Formato: { "preenchidos": {...}, "faltando": [...] }',
+        ],
+        [
+            'role' => 'user',
+            'content' => $text,
+        ],
+    ],
+]);
+
+        return $response->json();
     }
 }

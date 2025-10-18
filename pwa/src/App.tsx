@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Login from "./pages/login";
 import Register from "./pages/register";
 import Dashboard from "./pages/dashboard";
-import ReportInput from "./pages/reportInput";
+import ReportInput from "./pages/criarEmergencia";
 import Home from './pages/home'; 
 import Features from './pages/features'; 
 import About from './pages/about';
