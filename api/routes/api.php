@@ -27,6 +27,9 @@ Route::post('auth/logout', [AutenticadorController::class, 'logout'])->middlewar
 // --------------------
 Route::post('/emergencias', [EmergenciaController::class, 'store']); // rota pública
 Route::post('ia/transcribe', [IAController::class, 'transcribe']);
+Route::post('/ia/analyze-text', [IAController::class, 'analyzeText']);
+
+Route::post('/pets/public', [PetController::class, 'storePublic']);
 
 // --------------------
 // Rotas protegidas (Orion + Sanctum)
@@ -42,8 +45,7 @@ Route::group(['as' => 'api.'], function() {
     Orion::hasOneResource('usuario', 'tutor', TutorController::class)
         ->withSoftDeletes();
 
-    Orion::resource('/pets', PetController::class)
-        ->middleware(['auth:sanctum']);
+    Orion::resource('/pets', PetController::class);
 
     Orion::hasManyResource('tutor', 'pets', PetController::class)
         ->withSoftDeletes();
@@ -66,6 +68,7 @@ Route::group(['as' => 'api.'], function() {
     // HistoricoAtendimento protegido
     Orion::hasManyResource('emergencia', 'historico', HistoricoAtendimentoController::class)
         ->withSoftDeletes();
+        
 });
 
 // --------------------

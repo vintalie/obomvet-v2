@@ -1,9 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import {
+  Mic,
+  Square,
+  PawPrint,
+  Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardList,
+} from "lucide-react";
 
 interface EmergencyForm {
-  pet_id: string;
+  pet_id?: string;
+  nome_pet?: string;
   descricao_sintomas: string;
   nivel_urgencia: "baixa" | "media" | "alta" | "critica";
 }
@@ -13,11 +23,11 @@ interface AutofillResponse {
   faltando?: string[];
 }
 
+const URGENCIAS = ["baixa", "media", "alta", "critica"] as const;
+
 export default function ReportInput() {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [textInput, setTextInput] = useState("");
-  const [showInstructions, setShowInstructions] = useState(false);
   const [report, setReport] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -32,16 +42,15 @@ export default function ReportInput() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<EmergencyForm>({
-    pet_id: "",
     descricao_sintomas: "",
     nivel_urgencia: "media",
   });
 
-  const pets = [
+  const [pets, setPets] = useState<{ id: string; name: string }[]>([
     { id: "1", name: "Rex" },
     { id: "2", name: "Mimi" },
     { id: "3", name: "Thor" },
-  ];
+  ]);
 
   useEffect(() => {
     if (transcribedText) {
@@ -50,8 +59,7 @@ export default function ReportInput() {
     }
   }, [transcribedText]);
 
-  useEffect(() => setShowInstructions(isRecording), [isRecording]);
-
+  // === AUDIO ===
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -67,42 +75,28 @@ export default function ReportInput() {
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        setAudioUrl(URL.createObjectURL(audioBlob));
-
         const formDataAudio = new FormData();
         formDataAudio.append("file", audioBlob, "audio.webm");
 
         try {
           setIsTranscribing(true);
-          setError("");
-
           const res = await fetch("http://localhost:8000/api/ia/transcribe", {
             method: "POST",
             body: formDataAudio,
           });
 
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || "Erro na transcrição");
-
-          const aiContent = data?.choices?.[0]?.message?.content || "";
-          let parsed: AutofillResponse | null = null;
-
+          const text = await res.text();
+          let data;
           try {
-            parsed = JSON.parse(aiContent);
+            data = JSON.parse(text);
           } catch {
-            console.warn("Resposta da IA não pôde ser parseada:", aiContent);
-          }
-
-          if (parsed) {
-            setAiResponse(parsed);
-            setMissingFields(parsed.faltando || []);
-            setFormData((prev) => ({ ...prev, ...parsed.preenchidos }));
+            console.warn("Resposta da IA não é JSON:", text);
+            setError("Não foi possível interpretar a resposta da IA.");
+            return;
           }
 
           setTranscribedText(data.text || "");
-          setTextInput(data.text || "");
         } catch (err: any) {
-          console.error(err);
           setError(err.message);
         } finally {
           setIsTranscribing(false);
@@ -114,23 +108,76 @@ export default function ReportInput() {
       setTranscribedText("");
       setAiResponse(null);
       setMissingFields([]);
-    } catch (err: any) {
-      console.error("Erro ao acessar microfone:", err);
+      setError("");
+    } catch {
       alert("Não foi possível acessar o microfone. Verifique as permissões.");
     }
   }
 
   function stopRecording() {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
+    if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setIsRecording(false);
+  }
+
+  // === FUNÇÃO PARA LIMPAR JSON DA IA ===
+  const cleanJson = (text: string) => {
+    try {
+      return JSON.parse(text.replace(/^\uFEFF/, "").trim());
+    } catch {
+      return null;
+    }
+  };
+
+  // === IA ANÁLISE DE TEXTO ===
+  async function analyzeTextWithAI() {
+    if (!textInput.trim()) {
+      alert("Digite algo antes de analisar com a IA");
+      return;
+    }
+
+    setIsTranscribing(true);
+    setError("");
+    setAiResponse(null);
+    setMissingFields([]);
+
+    try {
+      const res = await fetch("http://localhost:8000/api/ia/analyze-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: textInput.trim() }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        setError(`Erro da IA: ${err}`);
+        return;
       }
+
+      const data = await res.json();
+      const aiContent = data?.choices?.[0]?.message?.content || "";
+      const parsed: AutofillResponse | null = cleanJson(aiContent);
+
+      if (!parsed) {
+        console.warn("Resposta da IA não pôde ser parseada:", aiContent);
+        setError("Não foi possível interpretar a resposta da IA.");
+        return;
+      }
+
+      setAiResponse(parsed);
+      setMissingFields(parsed.faltando || []);
+      setFormData((prev) => ({ ...prev, ...parsed.preenchidos }));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsTranscribing(false);
     }
   }
 
+  // === ENVIO ===
   async function handleSubmit() {
     if (!formData.descricao_sintomas.trim()) {
       alert("Por favor, descreva os sintomas");
@@ -142,47 +189,71 @@ export default function ReportInput() {
     setReport(null);
 
     try {
-      // Converte pet_id corretamente
-      let petId: number | null = null;
-      if (formData.pet_id.trim() !== "") {
-        const parsed = Number(formData.pet_id);
-        if (!isNaN(parsed)) petId = parsed;
+      let petId: number | null = formData.pet_id ? Number(formData.pet_id) : null;
+
+      if (!petId && formData.nome_pet?.trim()) {
+        const resPet = await fetch("http://localhost:8000/api/pets/public", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nome: formData.nome_pet.trim() }),
+        });
+
+        if (!resPet.ok) {
+          const errText = await resPet.text();
+          setError(`Erro ao criar pet: ${errText}`);
+          setLoading(false);
+          return;
+        }
+
+        const dataPet = await resPet.json();
+        petId = Number(dataPet.data.id);
+        setPets((prev) => [...prev, { id: String(petId), name: formData.nome_pet!.trim() }]);
       }
 
-      const validUrgencias: EmergencyForm["nivel_urgencia"][] = [
-        "baixa",
-        "media",
-        "alta",
-        "critica",
-      ];
-      const nivelUrgencia = validUrgencias.includes(formData.nivel_urgencia)
-        ? formData.nivel_urgencia
-        : "media";
+      if (!petId) {
+        alert("Selecione ou cadastre o nome do pet antes de enviar.");
+        setLoading(false);
+        return;
+      }
+
+      const nivel_urgencia = formData.nivel_urgencia
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+      if (!URGENCIAS.includes(nivel_urgencia as EmergencyForm["nivel_urgencia"])) {
+        alert("Nível de urgência inválido. Use: baixa, media, alta ou critica.");
+        setLoading(false);
+        return;
+      }
 
       const payload = {
         descricao_sintomas: formData.descricao_sintomas.trim(),
-        nivel_urgencia: nivelUrgencia,
+        nivel_urgencia,
         pet_id: petId,
       };
 
       const res = await fetch("http://localhost:8000/api/emergencias", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      if (!res.ok) {
+        const text = await res.text();
+        setError(`Erro do servidor: ${text}`);
+        setLoading(false);
+        return;
+      }
 
-      if (!res.ok) throw new Error(data?.message || "Erro ao enviar relatório");
-
+      await res.json();
       setReport("Emergência registrada com sucesso!");
-      setFormData({ pet_id: "", descricao_sintomas: "", nivel_urgencia: "media" });
+      setFormData({ descricao_sintomas: "", nivel_urgencia: "media" });
       setTextInput("");
       setTranscribedText("");
       setAiResponse(null);
+      setMissingFields([]);
+      alert("Emergência criada com sucesso!");
     } catch (err: any) {
       setError(err.message || "Erro inesperado");
     } finally {
@@ -191,109 +262,157 @@ export default function ReportInput() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-300 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-[#EAF9F5] via-[#D8F3DC] to-[#C3E5D0] flex flex-col">
       <Navbar />
-
-      <div className="p-6 max-w-xl mx-auto mt-32">
-        <h1 className="text-2xl font-bold mb-4">Relato de Emergência</h1>
-
-        {isRecording && <p className="text-gray-500 mb-2">🎙 Gravando...</p>}
-        {isTranscribing && <p className="text-blue-600 mb-2">Transcrevendo áudio...</p>}
-        {error && <p className="text-red-600 mb-2">{error}</p>}
-        {report && <p className="text-green-600 mb-2">{report}</p>}
-
-        {aiResponse && (
-          <div className="p-4 bg-blue-50 border rounded mb-4">
-            <h2 className="font-semibold text-blue-800 mb-2">Análise da IA</h2>
-            {aiResponse.preenchidos && (
-              <p className="text-sm text-gray-700 mb-2">
-                Campos identificados automaticamente: {Object.keys(aiResponse.preenchidos).join(", ")}
-              </p>
-            )}
-            {missingFields.length > 0 && (
-              <p className="text-sm text-red-600">
-                ⚠️ A IA não conseguiu identificar: {missingFields.join(", ")} — complete abaixo.
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium mb-2" htmlFor="pet-select">Selecione o Pet:</label>
-            <select
-              id="pet-select"
-              value={formData.pet_id}
-              onChange={(e) => setFormData((p) => ({ ...p, pet_id: e.target.value }))}
-              className="w-full p-2 border rounded"
-            >
-              <option value="">Selecione um pet</option>
-              {pets.map((pet) => (
-                <option key={pet.id} value={pet.id}>
-                  {pet.name}
-                </option>
-              ))}
-            </select>
+      <div className="max-w-2xl mx-auto mt-28 mb-10 px-6">
+        <div className="bg-white shadow-[0_6px_18px_rgba(0,0,0,0.08)] rounded-2xl border border-[#E0E6E3] p-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-[#25A18E]/10 rounded-bl-full" />
+          <div className="flex items-center gap-3 mb-6">
+            <PawPrint className="w-7 h-7 text-[#25A18E]" />
+            <h1 className="text-2xl font-bold text-[#004E64]">Relato de Emergência</h1>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2" htmlFor="urgencia-select">Nível de Urgência:</label>
-            <select
-              id="urgencia-select"
-              value={formData.nivel_urgencia}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, nivel_urgencia: e.target.value as EmergencyForm["nivel_urgencia"] }))
-              }
-              className="w-full p-2 border rounded"
-            >
-              <option value="baixa">Baixa</option>
-              <option value="media">Média</option>
-              <option value="alta">Alta</option>
-              <option value="critica">Crítica</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2" htmlFor="descricao-textarea">Descrição dos Sintomas:</label>
-          <div className="flex gap-2 mb-3">
-            {!isRecording ? (
-              <button onClick={startRecording} className="bg-red-600 text-white px-4 py-2 rounded">
-                🎤 Iniciar Gravação
-              </button>
-            ) : (
-              <button onClick={stopRecording} className="bg-gray-600 text-white px-4 py-2 rounded">
-                ⏹️ Parar
-              </button>
-            )}
-          </div>
-
-          {transcribedText && (
-            <div className="p-3 bg-blue-50 rounded mb-3">
-              <p className="text-sm text-gray-600 mb-1">Texto transcrito:</p>
-              <p className="text-gray-800">{transcribedText}</p>
+          {isRecording && (
+            <div className="flex items-center gap-2 text-red-600 text-sm mb-2">
+              <Mic className="w-4 h-4 animate-pulse" /> Gravando...
+            </div>
+          )}
+          {isTranscribing && (
+            <div className="flex items-center gap-2 text-blue-600 text-sm mb-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Transcrevendo/analisando...
+            </div>
+          )}
+          {error && (
+            <div className="flex items-center gap-2 text-red-600 text-sm mb-3">
+              <AlertTriangle className="w-4 h-4" /> {error}
+            </div>
+          )}
+          {report && (
+            <div className="flex items-center gap-2 text-green-600 text-sm mb-3">
+              <CheckCircle2 className="w-4 h-4" /> {report}
             </div>
           )}
 
-          <textarea
-            id="descricao-textarea"
-            value={textInput}
-            onChange={(e) => {
-              setTextInput(e.target.value);
-              setFormData((p) => ({ ...p, descricao_sintomas: e.target.value }));
-            }}
-            placeholder="Descreva os sintomas"
-            className="w-full p-3 border rounded mb-2 h-32"
-          />
-        </div>
+          {aiResponse && (
+            <div className="p-4 bg-[#F0FBF8] border border-[#B3E6D9] rounded-xl mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <ClipboardList className="text-[#25A18E]" />
+                <h2 className="font-semibold text-[#004E64]">Análise da IA</h2>
+              </div>
+              {aiResponse.preenchidos && (
+                <p className="text-sm text-gray-700 mb-1">
+                  Campos preenchidos: <span className="font-medium">{Object.keys(aiResponse.preenchidos).join(", ")}</span>
+                </p>
+              )}
+              {missingFields.length > 0 && <p className="text-sm text-red-600">Faltando: {missingFields.join(", ")}</p>}
+            </div>
+          )}
 
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700"
-        >
-          {loading ? "Enviando..." : "Enviar Relatório"}
-        </button>
+          {/* FORMULÁRIO */}
+          <div className="space-y-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-[#004E64]">
+                Selecione o Pet (ou digite para cadastro rápido):
+              </label>
+              {pets.length > 0 && (
+                <select
+                  value={formData.pet_id || ""}
+                  onChange={(e) => setFormData((p) => ({ ...p, pet_id: e.target.value, nome_pet: "" }))}
+                  className="w-full p-2 border border-[#C9E4D9] rounded-lg focus:ring-2 focus:ring-[#25A18E]/40 outline-none"
+                >
+                  <option value="">Selecione um pet</option>
+                  {pets.map((pet) => (
+                    <option key={pet.id} value={pet.id}>{pet.name}</option>
+                  ))}
+                </select>
+              )}
+              <input
+                type="text"
+                placeholder="Nome do pet (opcional)"
+                value={formData.nome_pet || ""}
+                onChange={(e) => setFormData((p) => ({ ...p, nome_pet: e.target.value, pet_id: "" }))}
+                className="w-full p-2 border border-[#C9E4D9] rounded-lg focus:ring-2 focus:ring-[#25A18E]/40 outline-none mt-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-[#004E64]">Nível de Urgência:</label>
+              <select
+                value={formData.nivel_urgencia}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, nivel_urgencia: e.target.value as EmergencyForm["nivel_urgencia"] }))
+                }
+                className="w-full p-2 border border-[#C9E4D9] rounded-lg focus:ring-2 focus:ring-[#25A18E]/40 outline-none"
+              >
+                {URGENCIAS.map((urg) => (
+                  <option key={urg} value={urg}>
+                    {urg.charAt(0).toUpperCase() + urg.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* AUDIO + TEXTO */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-[#004E64]">Descrição dos Sintomas:</label>
+
+            <div className="flex gap-3 mb-3">
+              {!isRecording ? (
+                <button onClick={startRecording} className="flex items-center gap-2 bg-[#25A18E] text-white px-4 py-2 rounded-lg hover:bg-[#208B7C] transition">
+                  <Mic size={18} /> Iniciar
+                </button>
+              ) : (
+                <button onClick={stopRecording} className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                  <Square size={18} /> Parar
+                </button>
+              )}
+            </div>
+
+            {transcribedText && (
+              <div className="p-3 bg-[#F8FAFC] rounded-lg border mb-3">
+                <p className="text-xs text-gray-500 mb-1">Texto transcrito:</p>
+                <p className="text-gray-800 text-sm">{transcribedText}</p>
+              </div>
+            )}
+
+            <textarea
+              value={textInput}
+              onChange={(e) => {
+                setTextInput(e.target.value);
+                setFormData((p) => ({ ...p, descricao_sintomas: e.target.value }));
+              }}
+              placeholder="Descreva os sintomas do seu pet..."
+              className="w-full p-3 border border-[#C9E4D9] rounded-lg focus:ring-2 focus:ring-[#25A18E]/40 outline-none h-32 resize-none"
+            />
+
+            {/* Botão de analisar texto */}
+            <div className="flex gap-3 mb-3 mt-2">
+              <button
+                onClick={analyzeTextWithAI}
+                className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition"
+                disabled={isTranscribing}
+              >
+                {isTranscribing ? "Analisando..." : "Analisar IA"}
+              </button>
+            </div>
+          </div>
+
+          {/* BOTÃO ENVIAR */}
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full mt-6 bg-[#25A18E] text-white py-3 rounded-xl font-semibold hover:bg-[#208B7C] transition shadow-md"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Enviando...
+              </span>
+            ) : (
+              "Enviar Relatório"
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
