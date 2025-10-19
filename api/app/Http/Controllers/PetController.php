@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pet;
+use App\Models\Tutor;
 use App\Policies\PetPolicy;
 use Orion\Concerns\DisableAuthorization;
 use Orion\Http\Controllers\Controller;

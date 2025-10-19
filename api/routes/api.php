@@ -7,7 +7,7 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use App\Http\Controllers\{
     AutenticadorController,
-    UsuarioController,    
+    UsuarioController,
     TutorController,
     PetController,
     VeterinarioController,
@@ -20,6 +20,9 @@ use App\Http\Controllers\{
 };
 
 
+// --------------------
+// Rotas de autenticação
+// --------------------
 Route::post('auth/register', [AutenticadorController::class, 'register']);
 Route::post('auth/login', [AutenticadorController::class, 'login']);
 Route::post('auth/logout', [AutenticadorController::class, 'logout'])->middleware('auth:sanctum');
@@ -66,8 +69,8 @@ Route::group(['as' => 'api.'], function() {
         controller: VeterinarioController::class
     )->middleware('auth:sanctum');
 
-    Orion::hasOneResource('usuario','veterinario', VeterinarioController::class)->withSoftDeletes();
-
+    Orion::hasOneResource('usuario', 'veterinario', VeterinarioController::class)
+        ->withSoftDeletes();
 
     Orion::resource(
         name: 'prontuarios',
