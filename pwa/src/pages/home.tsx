@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
 import InstallPwaCard from "../components/InstallPwaCard";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, MapPin } from "lucide-react";
 
 export default function Home() {
   return (
@@ -109,10 +109,7 @@ export default function Home() {
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 1, type: "spring" }}
-        className="
-          hidden sm:flex
-          fixed z-50 bottom-8 right-8
-        "
+        className="hidden sm:flex fixed z-50 bottom-8 right-8"
       >
         <Link to="/reportInput">
           <motion.button
@@ -123,7 +120,7 @@ export default function Home() {
               boxShadow: [
                 "0 0 0 rgba(239,68,68,0.5)",
                 "0 0 30px rgba(239,68,68,0.8)",
-                "0 0 0 rgba(239,68,68,0.5)"
+                "0 0 0 rgba(239,68,68,0.5)",
               ],
             }}
             transition={{ duration: 1.8, repeat: Infinity }}
@@ -147,11 +144,7 @@ export default function Home() {
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 1 }}
-        className="
-          sm:hidden
-          fixed top-1/3 right-0 z-50
-          rotate-[-90deg] origin-bottom-right
-        "
+        className="sm:hidden fixed top-1/3 right-0 z-50 rotate-[-90deg] origin-bottom-right"
       >
         <Link to="/reportInput">
           <motion.div
@@ -171,6 +164,50 @@ export default function Home() {
           </motion.div>
         </Link>
       </motion.div>
+
+      {/* FAB para abrir o mapa de clínicas */}
+      {/* Botão estilo “fitinha” — versão mobile */}
+<motion.div
+  initial={{ opacity: 0, x: 50 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ delay: 1.3 }}
+  className="sm:hidden fixed top-1/2 right-0 z-60 rotate-[-90deg] origin-bottom-right"
+>
+  <Link to="/clinicPage">
+    <motion.div
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.95 }}
+      className="
+        flex items-center gap-2
+        bg-gradient-to-r from-blue-600 to-teal-500
+        text-white font-bold px-4 py-2 rounded-t-lg
+        shadow-[0_0_15px_rgba(0,128,255,0.7)]
+        hover:shadow-[0_0_25px_rgba(0,128,255,1)]
+        transition-all duration-300
+      "
+    >
+      <MapPin className="w-5 h-5" />
+      <span>Clínicas Próximas</span>
+    </motion.div>
+  </Link>
+</motion.div>
+{/* Botão Clínicas Desktop */}
+<motion.div className="hidden sm:flex fixed z-60 bottom-32 right-8">
+  <Link to="/clinicPage">
+    <motion.button
+      whileHover={{ scale: 1.08 }}
+      whileTap={{ scale: 0.95 }}
+      className="flex items-center gap-2 px-6 py-4 rounded-full text-white font-bold text-lg
+                 bg-gradient-to-r from-blue-600 to-teal-500 shadow-lg hover:shadow-xl
+                 transition-all duration-300"
+    >
+      <MapPin className="w-6 h-6" />
+      Clínicas Próximas
+    </motion.button>
+  </Link>
+</motion.div>
+
+
 
       {/* Card de instalação PWA */}
       <InstallPwaCard />

@@ -15,11 +15,15 @@ export default function Register() {
     telefone_principal: "",
     telefone_alternativo: "",
     cpf: "",
-    crmv: "",
-    localizacao: "",
-    especialidade: "",
+    cnpj: "",
+    nome_fantasia: "",
+    razao_social: "",
+    endereco: "",
     telefone_emergencia: "",
+    horario_funcionamento: "08:00-18:00",
     disponivel_24h: false,
+    localizacao: "",
+    email_contato: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,12 +31,40 @@ export default function Register() {
 
   const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
+  // Função para pegar coordenadas a partir do endereço
+  async function getCoordinates(endereco: string): Promise<string | null> {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        endereco
+      )}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        return `${lat},${lon}`;
+      } else {
+        return null;
+      }
+    } catch (err) {
+      console.error("Erro ao obter coordenadas:", err);
+      return null;
+    }
+  }
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const target = e.target as HTMLInputElement | HTMLSelectElement;
-    let value: any =
+    const value =
       target.type === "checkbox" ? (target as HTMLInputElement).checked : target.value;
-
     setFormData((prev: any) => ({ ...prev, [target.name]: value }));
+  }
+
+  function isValidCPF(cpf: string) {
+    return cpf.length === 11 && /^\d+$/.test(cpf);
+  }
+
+  function isValidCNPJ(cnpj: string) {
+    return cnpj.length === 14 && /^\d+$/.test(cnpj);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -40,11 +72,65 @@ export default function Register() {
     setError(null);
     setLoading(true);
 
+    // Validações simples
+    if (tipo === "tutor" && !isValidCPF(formData.cpf)) {
+      setError("CPF inválido. Deve conter 11 números.");
+      setLoading(false);
+      return;
+    }
+    if (tipo === "clinica" && !isValidCNPJ(formData.cnpj)) {
+      setError("CNPJ inválido. Deve conter 14 números.");
+      setLoading(false);
+      return;
+    }
+
     try {
+      let payload: any = {};
+
+      if (tipo === "tutor") {
+        payload = {
+          name: formData.nome_completo,
+          email: formData.email,
+          password: formData.password,
+          tipo: "tutor",
+          nome_completo: formData.nome_completo,
+          telefone_principal: formData.telefone_principal,
+          telefone_alternativo: formData.telefone_alternativo,
+          cpf: formData.cpf,
+        };
+      } else {
+        // Gera coordenadas automaticamente se o usuário não digitou
+        let localizacao = formData.localizacao;
+        if (!localizacao && formData.endereco) {
+          const coords = await getCoordinates(formData.endereco);
+          if (coords) localizacao = coords;
+          else alert(
+            "Não foi possível obter coordenadas a partir do endereço. Verifique o endereço."
+          );
+        }
+
+        payload = {
+          name: formData.nome_completo || formData.name,
+          email: formData.email,
+          password: formData.password,
+          tipo: "clinica",
+          cnpj: formData.cnpj,
+          nome_fantasia: formData.nome_fantasia || formData.nome_completo,
+          razao_social: formData.razao_social || formData.nome_completo,
+          endereco: formData.endereco || "Endereço padrão",
+          telefone_principal: formData.telefone_principal || formData.telefone_emergencia,
+          telefone_emergencia: formData.telefone_emergencia,
+          horario_funcionamento: formData.horario_funcionamento,
+          disponivel_24h: formData.disponivel_24h,
+          localizacao,
+          email_contato: formData.email_contato || formData.email,
+        };
+      }
+
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tipo, ...formData }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -104,9 +190,7 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-1 font-medium text-[#004E64]">
-              Tipo de usuário
-            </label>
+            <label className="block mb-1 font-medium text-[#004E64]">Tipo de usuário</label>
             <select
               name="tipo"
               value={tipo}
@@ -119,137 +203,124 @@ export default function Register() {
           </div>
 
           {/* Campos comuns */}
-          <motion.div
-            className="space-y-4"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <input
-              type="text"
-              name="name"
-              placeholder="Nome curto"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E] transition"
-              required
-            />
-            <input
-              type="text"
-              name="nome_completo"
-              placeholder="Nome completo"
-              value={formData.nome_completo}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-              required
-            />
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-              required
-            />
-            <input
-              type="password"
-              name="password"
-              placeholder="Senha"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-              required
-            />
-          </motion.div>
+          <input
+            type="text"
+            name="nome_completo"
+            placeholder={tipo === "tutor" ? "Nome completo" : "Nome da clínica"}
+            value={formData.nome_completo}
+            onChange={handleChange}
+            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+            required
+          />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={formData.email}
+            onChange={handleChange}
+            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+            required
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Senha"
+            value={formData.password}
+            onChange={handleChange}
+            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+            required
+          />
 
           {/* Campos específicos */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            {tipo === "tutor" && (
-              <>
-                <input
-                  type="text"
-                  name="cpf"
-                  placeholder="CPF"
-                  value={formData.cpf}
-                  onChange={handleChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                  required
-                />
-                <input
-                  type="text"
-                  name="telefone_principal"
-                  placeholder="Telefone principal"
-                  value={formData.telefone_principal}
-                  onChange={handleChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                  required
-                />
-                <input
-                  type="text"
-                  name="telefone_alternativo"
-                  placeholder="Telefone alternativo"
-                  value={formData.telefone_alternativo}
-                  onChange={handleChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                />
-              </>
-            )}
+          {tipo === "tutor" && (
+            <>
+              <input
+                type="text"
+                name="cpf"
+                placeholder="CPF (11 números)"
+                value={formData.cpf}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+                required
+              />
+              <input
+                type="text"
+                name="telefone_principal"
+                placeholder="Telefone principal"
+                value={formData.telefone_principal}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+                required
+              />
+              <input
+                type="text"
+                name="telefone_alternativo"
+                placeholder="Telefone alternativo"
+                value={formData.telefone_alternativo}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+              />
+            </>
+          )}
 
-            {tipo === "clinica" && (
-              <>
+          {tipo === "clinica" && (
+            <>
+              <input
+                type="text"
+                name="cnpj"
+                placeholder="CNPJ (14 números)"
+                value={formData.cnpj}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+                required
+              />
+              <input
+                type="text"
+                name="razao_social"
+                placeholder="Razão social"
+                value={formData.razao_social}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+                required
+              />
+              <input
+                type="text"
+                name="telefone_principal"
+                placeholder="Telefone principal"
+                value={formData.telefone_principal}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+                required
+              />
+              <input
+                type="text"
+                name="telefone_emergencia"
+                placeholder="Telefone emergência"
+                value={formData.telefone_emergencia}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+                required
+              />
+              <input
+                type="text"
+                name="endereco"
+                placeholder="Endereço completo"
+                value={formData.endereco}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+                required
+              />
+              <label className="flex items-center gap-2 text-[#004E64]">
                 <input
-                  type="text"
-                  name="crmv"
-                  placeholder="CRMV"
-                  value={formData.crmv}
+                  type="checkbox"
+                  name="disponivel_24h"
+                  checked={formData.disponivel_24h}
                   onChange={handleChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                  required
                 />
-                <input
-                  type="text"
-                  name="localizacao"
-                  placeholder="Localização"
-                  value={formData.localizacao}
-                  onChange={handleChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                  required
-                />
-                <input
-                  type="text"
-                  name="especialidade"
-                  placeholder="Especialidade"
-                  value={formData.especialidade}
-                  onChange={handleChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                  required
-                />
-                <input
-                  type="text"
-                  name="telefone_emergencia"
-                  placeholder="Telefone emergência"
-                  value={formData.telefone_emergencia}
-                  onChange={handleChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                  required
-                />
-                <label className="flex items-center gap-2 text-[#004E64]">
-                  <input
-                    type="checkbox"
-                    name="disponivel_24h"
-                    checked={formData.disponivel_24h}
-                    onChange={handleChange}
-                  />
-                  Disponível 24h
-                </label>
-              </>
-            )}
-          </motion.div>
+                Disponível 24h
+              </label>
+            </>
+          )}
 
           <motion.button
             whileHover={{ scale: 1.03 }}
