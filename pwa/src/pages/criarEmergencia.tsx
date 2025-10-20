@@ -246,6 +246,10 @@ export default function ReportInput() {
         return;
       }
 
+  const token = localStorage.getItem("token"); // ou getToken()
+  console.log("Token atual:", token); // <-- aqui você verá no console
+  if (!token) return;
+
       await res.json();
       setReport("Emergência registrada com sucesso!");
       setFormData({ descricao_sintomas: "", nivel_urgencia: "media" });

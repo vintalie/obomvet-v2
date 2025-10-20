@@ -18,13 +18,13 @@ return new class extends Migration
             $table->text('alergias')->nullable();
             $table->text('medicamentos_continuos')->nullable();
             $table->text('cuidados_especiais')->nullable();
+            $table->foreignId('tutor_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('emergencias');
         Schema::dropIfExists('pets');
     }
 };
