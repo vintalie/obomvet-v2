@@ -11,18 +11,22 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('pets', function (Blueprint $table) {
-            //
+        Schema::table('clinicas', function (Blueprint $table) {
+            // migration
+$table->boolean('publica')->default(false);
+
         });
     }
+
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('pets', function (Blueprint $table) {
-            //
+        Schema::table('clinicas', function (Blueprint $table) {
+            $table->dropColumn('publica');
         });
     }
+
 };

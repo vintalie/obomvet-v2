@@ -15,5 +15,13 @@ class ClinicaController extends Controller
    protected $policy = ClinicaPolicy::class;
    
 
-
+    public function indexPublic()
+   { // preciso remover essa funlão depois
+    // Retorna apenas os campos necessários para o mapa
+    return Clinica::select('id', 'nome_fantasia', 'endereco', 'localizacao', 'publica' ,'telefone_emergencia')->get();
+   }
+      public function searchableBy(): array
+    {
+        return ['publica', 'especialidade', 'telefone_emergencia', 'disponivel_24h']; // Atributos que podem ser pesquisados
+    }
 }

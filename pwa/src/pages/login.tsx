@@ -30,6 +30,7 @@ export default function Login() {
 
       const data = await res.json();
       setTokenFallback(data.access_token);
+      setUserFallback(data)
       navigate("/dashboard");
     } catch (err: any) {
       setError(err.message);

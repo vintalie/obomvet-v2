@@ -26,7 +26,11 @@ Route::post('auth/login', [AutenticadorController::class, 'login']);
 Route::post('auth/logout', [AutenticadorController::class, 'logout'])->middleware('auth:sanctum');
 
 
-
+Route::post('/emergencias', [EmergenciaController::class, 'store']); // rota pública
+Route::post('/pets/public', [PetController::class, 'storePublic']); // rota pública
+Route::post('ia/transcribe', [IAController::class, 'transcribe']);
+Route::post('/ia/analyze-text', [IAController::class, 'analyzeText']);
+Route::get('/clinicas-publicas', [ClinicaController::class, 'indexPublic']);
 
 Route::group(['as' => 'api.'], function() {
     

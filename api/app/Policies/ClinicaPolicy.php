@@ -15,7 +15,7 @@ class ClinicaPolicy
      */
     public function viewAny(Usuario $user): bool
     {
-        return true;
+        return $user->clinica->publica;
     }
 
     /**
@@ -23,7 +23,7 @@ class ClinicaPolicy
      */
     public function view(Usuario $user, Clinica $clinica): bool
     {
-        return true;
+        return $user->clinica->publica || $clinica->usuario_id == $user->id;
     }
 
     /**
