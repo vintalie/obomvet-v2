@@ -1,35 +1,32 @@
 <?php
 
-namespace App\Events;
+namespace App\Notifications;
 
 use App\Models\Emergencia;
-use Illuminate\Broadcasting\Channel;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushMessage;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
-
-class EmergenciaCriada implements ShouldBroadcast
+class EmergenciaPushNotification extends Notification implements ShouldQueue
 {
-    use Dispatchable, SerializesModels;
+    use Queueable;
 
-    public $emergencia;
-
-    public function __construct(Emergencia $emergencia)
+    public function __construct(public Emergencia $emergencia)
     {
-        $this->emergencia = $emergencia->load('pet', 'tutor');
     }
 
-    public function broadcastOn()
+    public function via($notifiable)
     {
-        // Canal privado para veterinários
-        return new PrivateChannel('veterinarios');
+        return ['webpush'];
     }
 
-    public function broadcastAs()
+    public function toWebPush($notifiable, $notification)
     {
-        return 'nova-emergencia';
+        return (new WebPushMessage)
+            ->title('🚨 Nova Emergência!')
+            ->body("{$this->emergencia->descricao}")
+            ->action('Ver Detalhes', 'abrir_emergencia')
+            ->data(['emergencia_id' => $this->emergencia->id]);
     }
 }
