@@ -17,7 +17,7 @@ class EmergenciaController extends Controller
 {
 // use DisableAuthorization;
     /**
-     * Criação pública de emergência (sem login)
+     * Model que o Orion vai gerenciar
      */
     protected $model = Emergencia::class;
 

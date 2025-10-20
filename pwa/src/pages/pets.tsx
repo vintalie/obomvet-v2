@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import DashboardLayout from "../components/layout/dashboardLayout";
+import DashboardLayout from "../components/dashboard/layout/DashboardLayout";
 import PetCard from "../components/dashboard/petDashboard";
 import { getToken, getUser } from "../utils/auth";
 

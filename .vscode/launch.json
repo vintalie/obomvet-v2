@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "php",
+            "request": "launch",
+            "name": "Debug Laravel API",
+            "runtimeExecutable": "php",
+            "program": "${workspaceFolder}/api/artisan",
+            "cwd": "${workspaceFolder}/api",
+            "args": ["serve"],
+            "port": 9003,
+            "env": {
+                "XDEBUG_MODE": "debug"
+            }
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Debug React PWA",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/pwa",
+            "sourceMaps": true,
+            "sourceMapPathOverrides": {
+                "webpack:///src/*": "${webRoot}/src/*"
+            }
+        }
+    ]
+}

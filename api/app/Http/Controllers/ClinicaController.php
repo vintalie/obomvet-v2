@@ -15,22 +15,13 @@ class ClinicaController extends Controller
    protected $policy = ClinicaPolicy::class;
    
 
-    // public function index(Request $request)
-    // {
-    //     $clinicas = Clinica::all()->map(function ($clinica) {
-    //         [$lat, $lng] = explode(',', $clinica->localizacao);
-
-    //         return [
-    //             'id' => $clinica->id,
-    //             'nome' => $clinica->nome_fantasia,
-    //             'endereco' => $clinica->endereco,
-    //             'telefone_emergencia' => $clinica->telefone_emergencia,
-    //             'disponivel_24h' => $clinica->disponivel_24h,
-    //             'latitude' => (float) $lat,
-    //             'longitude' => (float) $lng,
-    //         ];
-    //     });
-
-    //     return response()->json($clinicas);
-    // }
+    public function indexPublic()
+   { // preciso remover essa funlão depois
+    // Retorna apenas os campos necessários para o mapa
+    return Clinica::select('id', 'nome_fantasia', 'endereco', 'localizacao', 'publica' ,'telefone_emergencia')->get();
+   }
+      public function searchableBy(): array
+    {
+        return ['publica', 'especialidade', 'telefone_emergencia', 'disponivel_24h']; // Atributos que podem ser pesquisados
+    }
 }
