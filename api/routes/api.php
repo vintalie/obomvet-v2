@@ -111,6 +111,17 @@ Route::post('/email/resend', function (Request $request) {
 })->middleware(['auth:sanctum'])->name('verification.send');
 
 
+
+Route::post('/push/subscribe', function (Request $request) {
+    $request->user()->updatePushSubscription(
+        $request->input('endpoint'),
+        $request->input('keys.p256dh'),
+        $request->input('keys.auth')
+    );
+
+    return response()->json(['status' => 'subscribed']);
+})->middleware('auth:sanctum');
+
 // <?php
 
 // use Orion\Facades\Orion;

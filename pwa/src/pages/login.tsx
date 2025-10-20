@@ -10,7 +10,12 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
+  async function solicitarPermissao() {
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      console.log("Usuário autorizou notificações.");
+    }
+  }
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -31,6 +36,7 @@ export default function Login() {
       const data = await res.json();
       setTokenFallback(data.access_token);
       setUserFallback(data)
+      solicitarPermissao();
       navigate("/dashboard");
     } catch (err: any) {
       setError(err.message);

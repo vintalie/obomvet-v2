@@ -5,12 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Emergencia;
 use App\Policies\EmergenciaPolicy;
 use Illuminate\Http\Request;
-use App\Events\NovaEmergenciaGerada;
-
-use App\Services\DistanceService;
-use App\Events\EmergenciaCriada;
-
-use Orion\Concerns\DisableAuthorization;
+use App\Models\Usuario;
+use App\Notifications\EmergenciaPushNotification;
 use Orion\Http\Controllers\Controller;
 
 class EmergenciaController extends Controller
@@ -32,7 +28,11 @@ class EmergenciaController extends Controller
      */
     protected function afterCreate(Request $request, $emergencia)
     {
-        event(new EmergenciaCriada($emergencia));
+       $targets = Usuario::whereIn('tipo', ['veterinario', 'clinica'])->get();
+
+        foreach ($targets as $usuario) {
+            $usuario->notify(new EmergenciaPushNotification($emergencia));
+        }
     }
 
 }
