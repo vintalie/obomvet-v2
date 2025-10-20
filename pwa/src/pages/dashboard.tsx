@@ -13,6 +13,7 @@ import {
   Activity,
 } from "lucide-react";
 import PetDashboard from "../components/dashboard/petDashboard";
+
 interface User {
   id: number;
   name: string;
@@ -33,10 +34,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [emergencias, setEmergencias] = useState<Emergencia[]>([]);
-  const [showPets, setShowPets] = useState(false); // 👈 Estado para abrir/fechar o PetDashboard
+  const [showPets, setShowPets] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
+  // ---------- Busca dados do usuário ----------
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -44,38 +46,48 @@ export default function Dashboard() {
       return;
     }
 
-    fetch(`${API_URL}/api/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async (res) => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         if (!res.ok) {
-          if (res.status === 401) throw new Error("Token inválido ou expirado.");
           const data = await res.json().catch(() => ({}));
           throw new Error(data.message || "Erro ao buscar dados do usuário.");
         }
-        return res.json();
-      })
-      .then((data) => setUser(data))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+
+        const data = await res.json();
+        setUser(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [navigate, API_URL]);
 
+  // ---------- Busca emergências (veterinário) ----------
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.tipo !== "veterinario") return;
     const token = getToken();
 
-    if (user.tipo === "veterinario") {
-      fetch(`${API_URL}/api/emergencias`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then(setEmergencias)
-        .catch(() => setEmergencias([]));
-    }
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/emergencias`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setEmergencias(data);
+      } catch {
+        setEmergencias([]);
+      }
+    })();
   }, [user, API_URL]);
 
   function handleLogout() {
     clearTokenFallback();
+    setUser(null);
     navigate("/");
   }
 
@@ -114,14 +126,13 @@ export default function Dashboard() {
 
             {isTutor ? (
               <>
-                <Link
-                  to="#"
-                  onClick={() => setShowPets(true)}
-                  className="flex items-center gap-2 hover:bg-gray-100 rounded-md px-3 py-2"
+                <button
+                  onClick={() => setShowPets((v) => !v)}
+                  className="flex items-center gap-2 hover:bg-gray-100 rounded-md px-3 py-2 w-full text-left"
                 >
                   <Dog size={18} />
                   Meus Pets
-                </Link>
+                </button>
 
                 <Link
                   to="/novaEmergencia"
@@ -176,11 +187,8 @@ export default function Dashboard() {
               <h2 className="text-2xl font-bold text-gray-800">
                 Bem-vindo, {user?.name} 🐾
               </h2>
-              <p className="text-gray-500">
-                O que você deseja fazer hoje?
-              </p>
+              <p className="text-gray-500">O que você deseja fazer hoje?</p>
 
-              {/* Botões principais */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <button
                   onClick={() => setShowPets((v) => !v)}
@@ -207,10 +215,9 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              {/* Aqui aparece o PetDashboard quando showPets = true */}
-              {showPets && (
+              {showPets && user && (
                 <div className="mt-8 border-t pt-6">
-                  <PetDashboard />
+                  <PetDashboard currentUser={user} />
                 </div>
               )}
             </div>
@@ -219,7 +226,6 @@ export default function Dashboard() {
               <h2 className="text-2xl font-bold text-gray-800 mb-4">
                 Emergências Recentes 🚑
               </h2>
-
               {emergencias.length === 0 ? (
                 <p className="text-gray-500">Nenhuma emergência ativa no momento.</p>
               ) : (

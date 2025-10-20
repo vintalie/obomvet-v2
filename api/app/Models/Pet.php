@@ -18,6 +18,7 @@ class Pet extends Model
         'alergias',
         'medicamentos_continuos',
         'cuidados_especiais',
+        'tutor_id',
     ];
 
     protected $casts = [

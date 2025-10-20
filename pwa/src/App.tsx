@@ -9,6 +9,7 @@ import Features from './pages/features';
 import About from './pages/about';
 import './styles/app.css';
 import { getToken } from './utils/auth';
+import ClinicPage from "./pages/clinicPage";
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const token = getToken();
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/reportInput" element={<ReportInput />} />
         <Route path="/features" element={<Features />} />
         <Route path="/about" element={<About />} />
+        <Route path="/clinicPage" element={<ClinicPage />} />
         {/* Redireciona qualquer rota desconhecida para a Home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
