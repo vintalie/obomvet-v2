@@ -3,22 +3,32 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        api: __DIR__.'/../routes/api.php',
+        web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
-        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware) {
-
+    ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'ability' => CheckForAnyAbility::class,
+            'auth.jwt' => \PHPOpenSourceSaver\JWTAuth\Http\Middleware\Authenticate::class,
         ]);
-
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        //
-    })->create();
+    ->withExceptions(function (Exceptions $exceptions) {
+            /**
+            * 🔹 Tratamento global de exceções
+            */
+            $exceptions->render(function (Throwable $e, $request) {
+                if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                    return response()->json(['error' => 'Recurso não encontrado'], 404);
+                }
+
+                if ($e instanceof \Illuminate\Validation\ValidationException) {
+                    return response()->json(['errors' => $e->errors()], 422);
+                }
+
+                return response()->json(['error' => $e->getMessage()], 500);
+            });
+        })
+        ->create();
