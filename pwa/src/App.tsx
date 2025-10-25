@@ -10,6 +10,7 @@ import About from './pages/about';
 import './styles/app.css';
 import { getToken } from './utils/auth';
 import ClinicPage from "./pages/clinicPage";
+import { DarkModeProvider } from "./contexts/DarkModeContext";
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const token = getToken();
@@ -18,6 +19,7 @@ function PrivateRoute({ children }: { children: JSX.Element }) {
 
 export default function App() {
   return (
+    <DarkModeProvider>
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
@@ -32,5 +34,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
+    </DarkModeProvider>
   );
 }
