@@ -104,12 +104,26 @@ class AuthController extends Controller
         // Gera o token JWT automaticamente após registro
         $token = JWTAuth::fromUser($user);
 
-        return response()->json([
+        $response = [
             'message' => 'Usuário criado com sucesso!',
             'usuario' => $user->load($user->tipo),
             'access_token' => $token,
             'token_type' => 'bearer',
-        ], 201);
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'tipo' => $user->tipo,
+        ];
+
+        if ($user->tipo === 'clinica') {
+            $response['clinica_id'] = $user->clinica->id ?? null;
+        } elseif ($user->tipo === 'veterinario') {
+            $response['veterinario_id'] = $user->veterinario->id ?? null;
+        } elseif ($user->tipo === 'tutor') {
+            $response['tutor_id'] = $user->tutor->id ?? null;
+        }
+
+        return response()->json($response, 201);
     }
 
     /**

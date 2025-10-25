@@ -10,6 +10,7 @@ use App\Models\Pet;
 use App\Models\Prontuario;
 use App\Models\Tutor;
 use App\Models\Veterinario;
+use App\Models\Usuario;
 use App\Policies\AnexoPolicy;
 use App\Policies\ClinicaPolicy;
 use App\Policies\EmergenciaPolicy;
@@ -18,6 +19,7 @@ use App\Policies\PetPolicy;
 use App\Policies\ProntuarioPolicy;
 use App\Policies\TutorPolicy;
 use App\Policies\VeterinarioPolicy;
+use App\Policies\UsuarioPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -35,6 +37,7 @@ class AuthServiceProvider extends ServiceProvider
         Pet::class => PetPolicy::class,
         Prontuario::class => ProntuarioPolicy::class,
         Tutor::class => TutorPolicy::class,
+    Usuario::class => UsuarioPolicy::class,
         Veterinario::class => VeterinarioPolicy::class,
     ];
 

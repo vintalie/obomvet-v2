@@ -39,7 +39,12 @@ class ClinicaController extends Controller
         $clinica->delete();
         return response()->noContent();
     }
-
+    
+    public function indexPublic()
+   { // preciso remover essa funlão depois
+    // Retorna apenas os campos necessários para o mapa
+    return Clinica::select('id', 'nome_fantasia', 'endereco', 'localizacao', 'publica' ,'telefone_emergencia')->get();
+   }
     public function getVeterinarios(Clinica $clinica)
     {
         return $clinica->veterinarios()->get();
