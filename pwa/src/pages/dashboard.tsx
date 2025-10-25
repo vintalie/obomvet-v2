@@ -43,7 +43,7 @@ export default function Dashboard() {
         if (!res.ok) throw new Error("Erro ao buscar dados do usuário.");
 
         const data = await res.json();
-        setUser(data.data);
+        setUser(data);
       } catch (err: any) {
         setError(err.message);
       } finally {

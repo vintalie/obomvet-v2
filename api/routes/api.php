@@ -1,7 +1,10 @@
 <?php
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\{AnexoController, ClinicaController, EmergenciaController, HistoricoAtendimentoController, PetController, ProntuarioController, TutorController, VeterinarioController};
+use App\Http\Controllers\Api\{AnexoController, ClinicaController, EmergenciaController, HistoricoAtendimentoController, PetController, ProntuarioController, TutorController, UsuarioController, VeterinarioController};
+use App\Http\Controllers\Api\IAController;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
@@ -9,6 +12,12 @@ Route::prefix('auth')->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
 });
 
+
+Route::post('/emergencias', [EmergenciaController::class, 'store']); // rota pública
+// Route::post('/pets/public', [PetController::class, 'storePublic']); // rota pública
+Route::post('ia/transcribe', [IAController::class, 'transcribe']);
+Route::post('/ia/analyze-text', [IAController::class, 'analyzeText']);
+Route::get('/clinicas-publicas', [ClinicaController::class, 'indexPublic']);
 // Rotas RESTful para os modelos
 // Registramos individualmente para poder aplicar middleware `auth:api`
 Route::apiResource('anexos', AnexoController::class);
@@ -18,6 +27,7 @@ Route::apiResource('historicos', HistoricoAtendimentoController::class);
 Route::apiResource('pets', PetController::class);
 Route::apiResource('prontuarios', ProntuarioController::class)->middleware('auth:api');
 Route::apiResource('tutores', TutorController::class)->middleware('auth:api');
+Route::apiResource('usuarios', UsuarioController::class)->middleware('auth:api');
 Route::apiResource('veterinarios', VeterinarioController::class);
 
 // Rotas aninhadas usando métodos dos controllers
@@ -67,3 +77,26 @@ Route::post('prontuarios/{prontuario}/anexos', [ProntuarioController::class, 'st
 
 // Anexo -> Anexable (polimórfico)
 Route::get('anexos/{anexo}/anexable', [AnexoController::class, 'getAnexable']);
+
+
+// Rota para verificar o e-mail
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill(); // marca o usuário como verificado
+    return response()->json(['message' => 'E-mail verificado com sucesso!']);
+})->middleware(['auth:sanctum', 'signed'])->name('verification.verify');
+
+// Rota para reenviar link
+Route::post('/email/resend', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return response()->json(['message' => 'Link de verificação reenviado!']);
+})->middleware(['auth:sanctum'])->name('verification.send');
+
+
+
+Route::post('/push/subscribe', function (Request $request) {
+    $request->user()->updatePushSubscription(
+        $request->input('endpoint'),
+        $request->input('keys.p256dh'),
+        $request->input('keys.auth')
+    );
+});
