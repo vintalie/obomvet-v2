@@ -1,168 +1,184 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\Usuario;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-
+use Illuminate\Auth\Events\Registered;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
-// use DisableAuthorization;
+    /**
+     * Registrar novo usuário (Tutor, Veterinário ou Clínica)
+     */
     public function register(Request $request)
     {
-        $registerUserData = [];
-        $userData = [];
+        $validated = match ($request->tipo) {
+            'tutor' => $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:usuarios',
+                'password' => 'required|string|min:8',
+                'tipo' => 'required|in:tutor',
+                'nome_completo' => 'required|string|max:255',
+                'telefone_principal' => 'required|string|max:20',
+                'telefone_alternativo' => 'nullable|string|max:20',
+                'cpf' => 'required|string|size:11|unique:tutors,cpf',
+            ]),
 
-        switch ($request->tipo) {
-            case 'tutor':
-                $registerUserData = $request->validate([
-                    'name' => 'required|string|max:255',
-                    'email' => 'required|string|email|max:255|unique:usuarios',
-                    'password' => 'required|string|min:8',
-                    'tipo' => 'required|in:tutor',
-                    'nome_completo' => 'required|string|max:255',
-                    'telefone_principal' => 'required|string|max:20',
-                    'telefone_alternativo' => 'nullable|string|max:20',
-                    'cpf' => 'required|string|size:11|unique:tutors,cpf',
-                ]);
-                break;
+            'veterinario' => $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:usuarios',
+                'password' => 'required|string|min:8',
+                'tipo' => 'required|in:veterinario',
+                'crmv' => 'required|string|unique:veterinarios,crmv',
+                'nome_completo' => 'required|string|max:255',
+                'localizacao' => 'required|string|max:255',
+                'especialidade' => 'required|string|max:255',
+                'telefone_emergencia' => 'required|string|max:20',
+                'disponivel_24h' => 'required|boolean',
+            ]),
 
-            case 'veterinario':
-                $registerUserData = $request->validate([
-                    'name' => 'required|string|max:255',
-                    'email' => 'required|string|email|max:255|unique:usuarios',
-                    'password' => 'required|string|min:8',
-                    'tipo' => 'required|in:veterinario',
-                    'crmv' => 'required|string|unique:veterinarios,crmv',
-                    'nome_completo' => 'required|string|max:255',
-                    'localizacao' => 'required|string|max:255',
-                    'especialidade' => 'required|string|max:255',
-                    'telefone_emergencia' => 'required|string|max:20',
-                    'disponivel_24h' => 'required|boolean',
-                ]);
-                break;
+            'clinica' => $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:usuarios',
+                'password' => 'required|string|min:8',
+                'tipo' => 'required|in:clinica',
+                'cnpj' => 'required|string|unique:clinicas,cnpj',
+                'nome_fantasia' => 'required|string|max:255',
+                'razao_social' => 'required|string|max:255',
+                'endereco' => 'required|string|max:255',
+                'telefone_principal' => 'required|string|max:255',
+                'telefone_emergencia' => 'required|string|max:255',
+                'horario_funcionamento' => 'required|string|max:255',
+                'disponivel_24h' => 'required|boolean',
+                'localizacao' => 'required|string|max:255',
+                'email_contato' => 'nullable|email|max:255',
+            ]),
 
-            case 'clinica':
-                $registerUserData = $request->validate([
-                    'name' => 'required|string|max:255',
-                    'email' => 'required|string|email|max:255|unique:usuarios',
-                    'password' => 'required|string|min:8',
-                    'tipo' => 'required|in:clinica',
-                    'cnpj' => 'required|string|unique:clinicas,cnpj',
-                    'nome_fantasia' => 'required|string|max:255',
-                    'razao_social' => 'required|string|max:255',
-                    'endereco' => 'required|string|max:255',
-                    'telefone_principal' => 'required|string|max:255',
-                    'telefone_emergencia' => 'required|string|max:255',
-                    'horario_funcionamento' => 'required|string|max:255',
-                    'disponivel_24h' => 'required|boolean',
-                    'localizacao' => 'required|string|max:255',
-                    'email_contato' => 'nullable|email|max:255',
-                ]);
-                break;
-
-            default:
-                return response()->json([
-                    'message' => 'Tipo de usuário inválido.'
-                ], 422);
-        }
+            default => throw new \InvalidArgumentException('Tipo de usuário inválido.'),
+        };
 
         $user = Usuario::create([
-            'name' => $registerUserData['name'],
-            'email' => $registerUserData['email'],
-            'password' => Hash::make($registerUserData['password']),
-            'tipo' => $registerUserData['tipo'],
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'tipo' => $validated['tipo'],
         ]);
 
-        switch ($request->tipo) {
-            case 'tutor':
-                $userData = $user->tutor()->create([
-                    'nome_completo' => $registerUserData['nome_completo'],
-                    'telefone_principal' => $registerUserData['telefone_principal'],
-                    'telefone_alternativo' => $registerUserData['telefone_alternativo'] ?? null,
-                    'cpf' => $registerUserData['cpf']
-                ]);
-                break;
-
-            case 'veterinario':
-                $userData = $user->veterinario()->create([
-                    'nome_completo' => $registerUserData['nome_completo'],
-                    'crmv' => $registerUserData['crmv'],
-                    'localizacao' => $registerUserData['localizacao'],
-                    'especialidade' => $registerUserData['especialidade'],
-                    'telefone_emergencia' => $registerUserData['telefone_emergencia'],
-                    'disponivel_24h' => $registerUserData['disponivel_24h'],
-                ]);
-                break;
-
-            case 'clinica':
-                $userData = $user->clinica()->create([
-                    'cnpj' => $registerUserData['cnpj'],
-                    'nome_fantasia' => $registerUserData['nome_fantasia'],
-                    'razao_social' => $registerUserData['razao_social'],
-                    'endereco' => $registerUserData['endereco'],
-                    'telefone_principal' => $registerUserData['telefone_principal'],
-                    'telefone_emergencia' => $registerUserData['telefone_emergencia'],
-                    'email_contato' => $registerUserData['email_contato'] ?? $registerUserData['email'],
-                    'horario_funcionamento' => $registerUserData['horario_funcionamento'],
-                    'disponivel_24h' => $registerUserData['disponivel_24h'],
-                    'localizacao' => $registerUserData['localizacao']
-                ]);
-                break;
-        }
+        // Cria relação com o tipo específico
+        match ($user->tipo) {
+            'tutor' => $user->tutor()->create([
+                'nome_completo' => $validated['nome_completo'],
+                'telefone_principal' => $validated['telefone_principal'],
+                'telefone_alternativo' => $validated['telefone_alternativo'] ?? null,
+                'cpf' => $validated['cpf'],
+            ]),
+            'veterinario' => $user->veterinario()->create([
+                'nome_completo' => $validated['nome_completo'],
+                'crmv' => $validated['crmv'],
+                'localizacao' => $validated['localizacao'],
+                'especialidade' => $validated['especialidade'],
+                'telefone_emergencia' => $validated['telefone_emergencia'],
+                'disponivel_24h' => $validated['disponivel_24h'],
+            ]),
+            'clinica' => $user->clinica()->create([
+                'cnpj' => $validated['cnpj'],
+                'nome_fantasia' => $validated['nome_fantasia'],
+                'razao_social' => $validated['razao_social'],
+                'endereco' => $validated['endereco'],
+                'telefone_principal' => $validated['telefone_principal'],
+                'telefone_emergencia' => $validated['telefone_emergencia'],
+                'email_contato' => $validated['email_contato'] ?? $validated['email'],
+                'horario_funcionamento' => $validated['horario_funcionamento'],
+                'disponivel_24h' => $validated['disponivel_24h'],
+                'localizacao' => $validated['localizacao'],
+            ]),
+        };
 
         event(new Registered($user));
-        
+
+        // Gera o token JWT automaticamente após registro
+        $token = JWTAuth::fromUser($user);
+
         return response()->json([
-            'message' => 'User Created',
-            'usuario' => $user->with($user->tipo)->find($user->id),
+            'message' => 'Usuário criado com sucesso!',
+            'usuario' => $user->load($user->tipo),
+            'access_token' => $token,
+            'token_type' => 'bearer',
         ], 201);
     }
 
-     public function login(Request $request){
-        $loginUserData = $request->validate([
-            'email'=>'required|string|email',
-            'password'=>'required|min:8'
+    /**
+     * Login usando JWT
+     */
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => 'required|string|email',
+            'password' => 'required|string|min:8',
         ]);
-        $user = Usuario::where('email',$loginUserData['email'])->first();
-        if(!$user || !Hash::check($loginUserData['password'],$user->password)){
-            return response()->json([
-                'message' => 'Invalid Credentials'
-            ],401);
+
+        try {
+            if (!$token = JWTAuth::attempt($credentials)) {
+                return response()->json(['message' => 'Credenciais inválidas.'], 401);
+            }
+        } catch (JWTException $e) {
+            return response()->json(['message' => 'Erro ao gerar token.'], 500);
         }
-        $token = $user->createToken($user->name.'-AuthToken', [$user->tipo])->plainTextToken;
+
+        $user = auth()->user();
 
         $response = [
             'access_token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => JWTAuth::factory()->getTTL() * 60,
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'tipo' => $user->tipo,
         ];
 
-        if($user->tipo == 'clinica'){
-            $response['clinica_id'] = $user->clinica->id;
-        }
-        if($user->tipo == 'veterinario'){
-            $response['veterinario_id'] = $user->veterinario->id;
-            
-        }
-        if($user->tipo == 'tutor'){
-            $response['tutor_id'] = $user->tutor->id;
-            
+        if ($user->tipo === 'clinica') {
+            $response['clinica_id'] = $user->clinica->id ?? null;
+        } elseif ($user->tipo === 'veterinario') {
+            $response['veterinario_id'] = $user->veterinario->id ?? null;
+        } elseif ($user->tipo === 'tutor') {
+            $response['tutor_id'] = $user->tutor->id ?? null;
         }
 
         return response()->json($response);
-
-        
     }
-    public function logout(Request $request){
-        $request->user()->currentAccessToken()->delete();
-        return response()->json([
-        "message"=>"logged out"
-        ]);
+
+    /**
+     * Logout do usuário (invalida o token JWT)
+     */
+    public function logout(Request $request)
+    {
+        try {
+            // Usando JWT: invalida o token presente no header Authorization.
+            $token = JWTAuth::getToken();
+
+            if (! $token) {
+                return response()->json(['error' => 'Token ausente.'], 401);
+            }
+
+            JWTAuth::invalidate($token);
+
+            return response()->json(['message' => 'Logout realizado com sucesso.']);
+        } catch (JWTException $e) {
+            return response()->json(['message' => 'Falha ao deslogar.'], 500);
+        }
+    }
+
+    /**
+     * Retornar o usuário autenticado
+     */
+    public function me()
+    {
+        return response()->json(auth()->user());
     }
 }

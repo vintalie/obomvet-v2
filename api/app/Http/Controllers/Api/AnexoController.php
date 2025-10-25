@@ -1,16 +1,47 @@
 <?php
 
 namespace App\Http\Controllers\Api;
-use Illuminate\Database\Eloquent\Model;
+
+use App\Models\Anexo;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
 class AnexoController extends Controller
 {
-    public function index() { return Model::all(); }
-    public function store(Request $request) { return Model::create($request->all()); }
-    public function show(Model $model) { return $model; }
-    public function update(Request $request, Model $model) { $model->update($request->all()); return $model; }
-    public function destroy(Model $model) { $model->delete(); return response()->noContent(); }
+    public function __construct()
+    {
+        $this->authorizeResource(Anexo::class, 'anexo');
+    }
 
+    public function index()
+    {
+        return Anexo::all();
+    }
+
+    public function store(Request $request)
+    {
+        return Anexo::create($request->all());
+    }
+
+    public function show(Anexo $anexo)
+    {
+        return $anexo;
+    }
+
+    public function update(Request $request, Anexo $anexo)
+    {
+        $anexo->update($request->all());
+        return $anexo;
+    }
+
+    public function destroy(Anexo $anexo)
+    {
+        $anexo->delete();
+        return response()->noContent();
+    }
+
+    public function getAnexable(Anexo $anexo)
+    {
+        return $anexo->anexable;
+    }
 }

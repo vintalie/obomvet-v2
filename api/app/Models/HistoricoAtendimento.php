@@ -26,7 +26,7 @@ class HistoricoAtendimento extends Model
     }
     public function anexos()
     {
-        return $this->morphOne(Anexo::class, 'anexable');
+        return $this->morphMany(Anexo::class, 'anexable');
     }
 
     public function veterinario()
