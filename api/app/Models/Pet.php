@@ -25,9 +25,9 @@ class Pet extends Model
         'data_nascimento' => 'date',
     ];
 
-    public function tutors()
+    public function tutor()
     {
-        return $this->belongsTo(Tutor::class, 'tutor_pet');
+        return $this->belongsTo(Tutor::class, 'tutor_id');
     }
      public function fotoPet()
     {
