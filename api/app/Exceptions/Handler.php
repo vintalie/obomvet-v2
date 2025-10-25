@@ -66,7 +66,8 @@ class Handler extends ExceptionHandler
 
         // Erro de autenticação (JWT ou Sanctum)
         $this->renderable(function (AuthenticationException $e, $request) {
-            if ($request->expectsJson()) {
+            
+            if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
                     'error' => 'Não autenticado. Token inválido ou ausente.'
                 ], 401);
