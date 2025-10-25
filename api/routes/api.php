@@ -1,227 +1,69 @@
 <?php
-
-use Orion\Facades\Orion;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
-use Illuminate\Http\Request;
-use App\Http\Controllers\{
-    AutenticadorController,
-    UsuarioController,
-    TutorController,
-    PetController,
-    VeterinarioController,
-    ClinicaController,
-    AnexoController,
-    ProntuarioController,
-    EmergenciaController,
-    HistoricoAtendimentoController,
-    IAController
-};
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\{AnexoController, ClinicaController, EmergenciaController, HistoricoAtendimentoController, PetController, ProntuarioController, TutorController, VeterinarioController};
 
-// --------------------
-// Rotas de autenticação
-// --------------------
-Route::post('auth/register', [AutenticadorController::class, 'register']);
-Route::post('auth/login', [AutenticadorController::class, 'login']);
-Route::post('auth/logout', [AutenticadorController::class, 'logout'])->middleware('auth:sanctum');
+Route::prefix('auth')->group(function () {
+    Route::post('register', [AuthController::class, 'register']);
+    Route::post('login', [AuthController::class, 'login']);
+    Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
+});
 
+// Rotas RESTful para os modelos
+// Registramos individualmente para poder aplicar middleware `auth:api`
+Route::apiResource('anexos', AnexoController::class);
+Route::apiResource('clinicas', ClinicaController::class)->middleware('auth:api');
+Route::apiResource('emergencias', EmergenciaController::class);
+Route::apiResource('historicos', HistoricoAtendimentoController::class);
+Route::apiResource('pets', PetController::class);
+Route::apiResource('prontuarios', ProntuarioController::class)->middleware('auth:api');
+Route::apiResource('tutores', TutorController::class)->middleware('auth:api');
+Route::apiResource('veterinarios', VeterinarioController::class);
 
-Route::post('/emergencias', [EmergenciaController::class, 'store']); // rota pública
-Route::post('/pets/public', [PetController::class, 'storePublic']); // rota pública
-Route::post('ia/transcribe', [IAController::class, 'transcribe']);
-Route::post('/ia/analyze-text', [IAController::class, 'analyzeText']);
-Route::get('/clinicas-publicas', [ClinicaController::class, 'indexPublic']);
+// Rotas aninhadas usando métodos dos controllers
 
-Route::group(['as' => 'api.'], function() {
-    
-    Orion::resource(
-        name: 'usuarios',
-        controller: UsuarioController::class
-    )->middleware(['auth:sanctum']);
-    
-    Orion::resource(
-        name: 'tutores',
-        controller: TutorController::class
-    )->middleware('auth:sanctum');
-    
-    Orion::hasOneResource('usuario','tutor', TutorController::class)->withSoftDeletes();
-    
-    
-    Orion::resource(
-        name: 'pets',
-        controller: PetController::class
-    )->middleware('auth:sanctum');
-    
-    Orion::hasManyResource('tutor', 'pet', PetController::class)->withSoftDeletes();
+// Tutors -> Pets e Emergencias
+Route::get('tutores/{tutor}/pets', [TutorController::class, 'getPets'])->middleware('auth:api');
+Route::post('tutores/{tutor}/pets', [TutorController::class, 'storePet'])->middleware('auth:api');
+Route::get('tutores/{tutor}/emergencias', [TutorController::class, 'getEmergencias'])->middleware('auth:api');
 
-    Orion::resource(
-        name: 'clinicas',
-        controller: ClinicaController::class
-    )->middleware(['auth:sanctum']);
-    
-    Orion::hasOneResource('usuario','clinica', ClinicaController::class)->withSoftDeletes();
+// Pets -> Tutors, Emergencias, Prontuarios e Foto
+Route::get('pets/{pet}/tutores', [PetController::class, 'getTutors']);
+Route::get('pets/{pet}/emergencias', [PetController::class, 'getEmergencias']);
+Route::post('pets/{pet}/emergencias', [PetController::class, 'storeEmergencia']);
+Route::get('pets/{pet}/prontuarios', [PetController::class, 'getProntuarios']);
+Route::post('pets/{pet}/prontuarios', [PetController::class, 'storeProntuario']);
+Route::get('pets/{pet}/foto', [PetController::class, 'getFoto']);
 
-    Orion::hasManyResource('clinica', 'veterinario', VeterinarioController::class)->withSoftDeletes();
+// Veterinarios -> Emergencias, Historicos e Anexo
+Route::get('veterinarios/{veterinario}/emergencias', [VeterinarioController::class, 'getEmergencias']);
+Route::post('veterinarios/{veterinario}/emergencias', [VeterinarioController::class, 'storeEmergencia']);
+Route::get('veterinarios/{veterinario}/historicos', [VeterinarioController::class, 'getHistoricos']);
+Route::post('veterinarios/{veterinario}/historicos', [VeterinarioController::class, 'storeHistorico']);
+Route::get('veterinarios/{veterinario}/anexo', [VeterinarioController::class, 'getAnexo']);
+Route::post('veterinarios/{veterinario}/anexo', [VeterinarioController::class, 'storeAnexo']);
 
-    
-    Orion::resource(
-        name: 'veterinarios',
-        controller: VeterinarioController::class
-    )->middleware('auth:sanctum');
+// Clinicas -> Veterinarios e Anexo
+Route::get('clinicas/{clinica}/veterinarios', [ClinicaController::class, 'getVeterinarios'])->middleware('auth:api');
+Route::post('clinicas/{clinica}/veterinarios', [ClinicaController::class, 'storeVeterinario'])->middleware('auth:api');
+Route::get('clinicas/{clinica}/anexo', [ClinicaController::class, 'getAnexo'])->middleware('auth:api');
+Route::post('clinicas/{clinica}/anexo', [ClinicaController::class, 'storeAnexo'])->middleware('auth:api');
 
-    Orion::hasOneResource('usuario', 'clinica', ClinicaController::class)
-        ->withSoftDeletes();
+// Emergencias -> Historicos e Anexo
+Route::get('emergencias/{emergencia}/historicos', [EmergenciaController::class, 'getHistoricos'])->middleware('auth:api');
+Route::post('emergencias/{emergencia}/historicos', [EmergenciaController::class, 'storeHistorico'])->middleware('auth:api');
+Route::get('emergencias/{emergencia}/anexo', [EmergenciaController::class, 'getAnexo'])->middleware('auth:api');
+Route::post('emergencias/{emergencia}/anexo', [EmergenciaController::class, 'storeAnexo'])->middleware('auth:api');
 
-    Orion::resource('/veterinarios', VeterinarioController::class)
-        ->middleware(['auth:sanctum']);
+// Historicos -> Emergencia e Anexo
+Route::get('historicos/{historico}/emergencia', [HistoricoAtendimentoController::class, 'getEmergencia']);
+Route::get('historicos/{historico}/anexo', [HistoricoAtendimentoController::class, 'getAnexo']);
+Route::post('historicos/{historico}/anexo', [HistoricoAtendimentoController::class, 'storeAnexo']);
 
-    Orion::resource(
-        name: 'prontuarios',
-        controller: ProntuarioController::class
-    )->middleware('auth:sanctum');
+// Prontuarios -> Pet e Anexos
+Route::get('prontuarios/{prontuario}/pet', [ProntuarioController::class, 'getPet'])->middleware('auth:api');
+Route::get('prontuarios/{prontuario}/anexos', [ProntuarioController::class, 'getAnexos'])->middleware('auth:api');
+Route::post('prontuarios/{prontuario}/anexos', [ProntuarioController::class, 'storeAnexo'])->middleware('auth:api');
 
- 
-    Orion::hasOneResource('clinica','anexo', AnexoController::class)->withSoftDeletes();
-    Orion::hasOneResource('pet','anexo', AnexoController::class)->withSoftDeletes();
-    Orion::hasOneResource('prontuario','anexo', AnexoController::class)->withSoftDeletes();
-    Orion::hasOneResource('emergencia','anexo', AnexoController::class)->withSoftDeletes();
-    Orion::hasOneResource('historico','anexo', AnexoController::class)->withSoftDeletes();
-
-    Orion::resource('emergencias', EmergenciaController::class);
-    Orion::hasManyResource('emergencia', 'historico', HistoricoAtendimentoController::class)->withSoftDeletes();
-
-    
-
-    });
-
-
-
-Route::post('/ia/transcribe', [IAController::class, 'transcribe']);
-
-// Rota para verificar o e-mail
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill(); // marca o usuário como verificado
-    return response()->json(['message' => 'E-mail verificado com sucesso!']);
-})->middleware(['auth:sanctum', 'signed'])->name('verification.verify');
-
-// Rota para reenviar link
-Route::post('/email/resend', function (Request $request) {
-    $request->user()->sendEmailVerificationNotification();
-    return response()->json(['message' => 'Link de verificação reenviado!']);
-})->middleware(['auth:sanctum'])->name('verification.send');
-
-
-
-Route::post('/push/subscribe', function (Request $request) {
-    $request->user()->updatePushSubscription(
-        $request->input('endpoint'),
-        $request->input('keys.p256dh'),
-        $request->input('keys.auth')
-    );
-
-    return response()->json(['status' => 'subscribed']);
-})->middleware('auth:sanctum');
-
-// <?php
-
-// use Orion\Facades\Orion;
-// use Illuminate\Support\Facades\Route;
-// use Illuminate\Foundation\Auth\EmailVerificationRequest;
-// use Illuminate\Http\Request;
-// use App\Http\Controllers\{
-//     AutenticadorController,
-//     UsuarioController,
-//     TutorController,
-//     PetController,
-//     VeterinarioController,
-//     ClinicaController,
-//     AnexoController,
-//     ProntuarioController,
-//     EmergenciaController,
-//     HistoricoAtendimentoController,
-//     IAController
-// };
-
-// // --------------------
-// // Rotas de autenticação
-// // --------------------
-// Route::post('auth/register', [AutenticadorController::class, 'register']);
-// Route::post('auth/login', [AutenticadorController::class, 'login']);
-// Route::post('auth/logout', [AutenticadorController::class, 'logout'])->middleware('auth:sanctum');
-
-// // --------------------
-// // Rotas públicas importantes
-// // --------------------
-// Route::post('/emergencias', [EmergenciaController::class, 'store']); // rota pública
-// Route::post('/pets/public', [PetController::class, 'storePublic']); // rota pública
-// Route::post('ia/transcribe', [IAController::class, 'transcribe']);
-// Route::post('/ia/analyze-text', [IAController::class, 'analyzeText']);
-// Route::get('/clinicas-publicas', [ClinicaController::class, 'indexPublic']);
-// // --------------------
-// // Rotas protegidas (Orion + Sanctum)
-// // --------------------
-// Route::group(['as' => 'api.'], function() {
-
-//     Orion::resource('usuarios', UsuarioController::class)
-//         ->middleware(['auth:sanctum']);
-
-//     Orion::resource('tutores', TutorController::class)
-//         ->middleware(['auth:sanctum']);
-    
-//     Orion::hasOneResource('usuario','tutor', TutorController::class)->withSoftDeletes();
-
-//     Orion::resource('pets', PetController::class)->middleware('auth:sanctum');
-//     Orion::hasManyResource('tutor', 'pet', PetController::class)->withSoftDeletes();
-
-//     Orion::resource('clinicas', ClinicaController::class)->middleware(['auth:sanctum']);
-//     Orion::hasOneResource('usuario','clinica', ClinicaController::class)->withSoftDeletes();
-//     Orion::hasManyResource('clinica', 'veterinario', VeterinarioController::class)->withSoftDeletes();
-
-//     Orion::resource('veterinarios', VeterinarioController::class)->middleware('auth:sanctum');
-//     Orion::hasOneResource('usuario', 'veterinario', VeterinarioController::class)->withSoftDeletes();
-
-//     Orion::resource('prontuarios', ProntuarioController::class)->middleware('auth:sanctum');
-
-//     Orion::hasOneResource('clinica','anexo', AnexoController::class)->withSoftDeletes();
-//     Orion::hasOneResource('pet','anexo', AnexoController::class)->withSoftDeletes();
-//     Orion::hasOneResource('prontuario','anexo', AnexoController::class)->withSoftDeletes();
-//     Orion::hasOneResource('emergencia','anexo', AnexoController::class)->withSoftDeletes();
-//     Orion::hasOneResource('historico','anexo', AnexoController::class)->withSoftDeletes();
-
-//     Orion::resource('emergencias', EmergenciaController::class);
-//     Orion::hasManyResource('emergencia', 'historico', HistoricoAtendimentoController::class)->withSoftDeletes();
-// });
-
-// // --------------------
-// // Usuário autenticado (dashboard / me)
-// // --------------------
-// Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
-//     $user = $request->user();
-
-//     $tipo = null;
-//     if ($user->tutor) {
-//         $tipo = 'tutor';
-//     } elseif ($user->veterinario) {
-//         $tipo = 'veterinario';
-//     }
-
-//     return response()->json([
-//         'id' => $user->id,
-//         'name' => $user->name,
-//         'email' => $user->email,
-//         'tipo' => $tipo,
-//     ]);
-// });
-
-// // --------------------
-// // Email verification
-// // --------------------
-// Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-//     $request->fulfill();
-//     return response()->json(['message' => 'E-mail verificado com sucesso!']);
-// })->middleware(['auth:sanctum', 'signed'])->name('verification.verify');
-
-// Route::post('/email/resend', function (Request $request) {
-//     $request->user()->sendEmailVerificationNotification();
-//     return response()->json(['message' => 'Link de verificação reenviado!']);
-// })->middleware(['auth:sanctum'])->name('verification.send');
+// Anexo -> Anexable (polimórfico)
+Route::get('anexos/{anexo}/anexable', [AnexoController::class, 'getAnexable']);

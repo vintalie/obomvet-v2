@@ -10,10 +10,8 @@ class Anexo extends Model
     use HasFactory;
 
     protected $fillable = [
-        'nome_arquivo',
-        'caminho',
-        'tipo',
-        'tamanho',
+        'arquivo',
+        'descricao',
         'anexable_id',
         'anexable_type',
     ];
