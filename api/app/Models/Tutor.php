@@ -24,7 +24,7 @@ class Tutor extends Model
 
     public function pets()
     {
-        return $this->belongsToMany(Pet::class, 'tutor_pet');
+        return $this->hasMany(Pet::class);
     }
 
     public function emergencias()
