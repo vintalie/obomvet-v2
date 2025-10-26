@@ -85,17 +85,27 @@ export default function ReportInput() {
             body: formDataAudio,
           });
 
-          const text = await res.text();
-          let data;
+         const resJson = await res.json();
+
+          // Pegando o conteúdo retornado pela IA
+          const content = resJson.choices?.[0]?.message?.content;
+
+          if (!content) {
+            setError("Resposta da IA não contém conteúdo válido.");
+            return;
+          }
+
+          let parsed;
           try {
-            data = JSON.parse(text);
+            parsed = JSON.parse(content); // converte a string JSON da IA para objeto
           } catch {
-            console.warn("Resposta da IA não é JSON:", text);
+            console.warn("Conteúdo da IA não é JSON:", content);
             setError("Não foi possível interpretar a resposta da IA.");
             return;
           }
 
-          setTranscribedText(data.text || "");
+          // Atualiza o estado com a descrição dos sintomas
+          setTranscribedText(parsed.emergencia?.descricao_sintomas || "");
         } catch (err: any) {
           setError(err.message);
         } finally {

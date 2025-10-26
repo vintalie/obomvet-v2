@@ -18,6 +18,9 @@ interface Pet {
 interface User {
   id: number;
   tipo: "tutor" | "veterinario";
+  tutor_id?: number;
+  clinica_id?: number;
+  veterinario_id?: number;
 }
 
 interface Props {
@@ -128,7 +131,7 @@ export default function PetDashboard({ currentUser }: Props) {
 
 
     try {
-      const res = await fetch(`${API_URL}/api/pets`, {
+      const res = await fetch(`${API_URL}/api/tutores/${currentUser.tutor_id}/pets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
