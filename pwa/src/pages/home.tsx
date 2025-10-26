@@ -122,7 +122,6 @@ export default function Home() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 1, type: "spring" }}
         className="hidden sm:flex fixed z-50 bottom-8 right-8"
-        className="hidden sm:flex fixed z-50 bottom-8 right-8"
       >
         <Link to="/reportInput">
           <motion.button
@@ -159,7 +158,7 @@ export default function Home() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 1 }}
         className="sm:hidden fixed top-1/3 right-0 z-50 rotate-[-90deg] origin-bottom-right"
-        className="sm:hidden fixed top-1/3 right-0 z-50 rotate-[-90deg] origin-bottom-right"
+        
       >
         <Link to="/reportInput">
           <motion.div
