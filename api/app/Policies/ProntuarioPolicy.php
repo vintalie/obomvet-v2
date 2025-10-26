@@ -3,64 +3,32 @@
 namespace App\Policies;
 
 use App\Models\Prontuario;
-use App\Models\User;
-use Illuminate\Auth\Access\Response;
+use App\Models\Usuario;
 
 class ProntuarioPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    public function viewAny(Usuario $user): bool
     {
-        return false;
+        return true;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, Prontuario $prontuario): bool
+    public function view(Usuario $user, Prontuario $prontuario): bool
     {
-        return false;
+        return true;
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function create(Usuario $user): bool
     {
-        return false;
+        return true;
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Prontuario $prontuario): bool
+    public function update(Usuario $user, Prontuario $prontuario): bool
     {
-        return false;
+        return true;
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, Prontuario $prontuario): bool
+    public function delete(Usuario $user, Prontuario $prontuario): bool
     {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, Prontuario $prontuario): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, Prontuario $prontuario): bool
-    {
-        return false;
+        return true;
     }
 }

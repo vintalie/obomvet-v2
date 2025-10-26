@@ -19,6 +19,7 @@ class Clinica extends Model
         'email_contato',
         'horario_funcionamento',
         'disponivel_24h',
+        'publica',
         'localizacao',
     ];
 

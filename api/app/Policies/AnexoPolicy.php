@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Anexo;
-use App\Models\User;
+use App\Models\Usuario;
 use Illuminate\Auth\Access\Response;
 
 class AnexoPolicy
@@ -11,56 +11,40 @@ class AnexoPolicy
     /**
      * Determine whether the user can view any models.
      */
-    public function viewAny(User $user): bool
+    public function viewAny(Usuario $user): bool
     {
-        return false;
+        return true; // Você pode ajustar conforme suas regras de negócio
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Anexo $anexo): bool
+    public function view(Usuario $user, Anexo $anexo): bool
     {
-        return false;
+        return true; // Você pode ajustar conforme suas regras de negócio
     }
 
     /**
      * Determine whether the user can create models.
      */
-    public function create(User $user): bool
+    public function create(Usuario $user): bool
     {
-        return false;
+        return true; // Você pode ajustar conforme suas regras de negócio
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Anexo $anexo): bool
+    public function update(Usuario $user, Anexo $anexo): bool
     {
-        return false;
+        return true; // Você pode ajustar conforme suas regras de negócio
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Anexo $anexo): bool
+    public function delete(Usuario $user, Anexo $anexo): bool
     {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, Anexo $anexo): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, Anexo $anexo): bool
-    {
-        return false;
+        return true; // Você pode ajustar conforme suas regras de negócio
     }
 }

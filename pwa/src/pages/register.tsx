@@ -22,6 +22,7 @@ export default function Register() {
     telefone_emergencia: "",
     horario_funcionamento: "08:00-18:00",
     disponivel_24h: false,
+    publica: false,
     localizacao: "",
     email_contato: "",
   });
@@ -122,6 +123,7 @@ export default function Register() {
           telefone_emergencia: formData.telefone_emergencia,
           horario_funcionamento: formData.horario_funcionamento,
           disponivel_24h: formData.disponivel_24h,
+          publica: formData.publica,
           localizacao,
           email_contato: formData.email_contato || formData.email,
         };
@@ -318,6 +320,15 @@ export default function Register() {
                   onChange={handleChange}
                 />
                 Disponível 24h
+              </label>
+                            <label className="flex items-center gap-2 text-[#004E64]">
+                <input
+                  type="checkbox"
+                  name="publica"
+                  checked={formData.publica}
+                  onChange={handleChange}
+                />
+                Permitir que qualquer pessoa visualize a clinica no mapa
               </label>
             </>
           )}

@@ -58,13 +58,13 @@ export function clearTokenFallback() {
     }
   } catch (e) {}
 }
-export function setUserFallback(id: number, name: string, email: string, tipo: "tutor" | "veterinario") {
+export function setUserFallback(data: { id: string | number; name: string; email: string; tipo: "tutor" | "veterinario" }) {
   try {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('id', id.toString());
-      localStorage.setItem('name', name);
-      localStorage.setItem('email', email);
-      localStorage.setItem('tipo', tipo);
+      localStorage.setItem('id', data.id.toString());
+      localStorage.setItem('name', data.name);
+      localStorage.setItem('email', data.email);
+      localStorage.setItem('tipo', data.tipo);
     }
   } catch (e) {}
 }

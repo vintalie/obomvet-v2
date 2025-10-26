@@ -1,38 +1,78 @@
-import PetCard from "./petDashboard";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useState } from "react";
+import { Home, Dog, AlertTriangle, History } from "lucide-react";
+import PetDashboard from "./petDashboard";
+import DashboardLayout from "./layout/DashboardLayout";
 
-interface Pet {
-  id: number;
-  nome: string;
-  especie: string;
-  idade: number;
-}
+export default function TutorDashboard({ user, onLogout }: any) {
+  const navigate = useNavigate();
+  const [showPets, setShowPets] = useState(false);
 
-interface TutorHomeProps {
-  name: string;
-  pets: Pet[];
-}
-
-export default function TutorHome({ name, pets }: TutorHomeProps) {
-  return (
-    <div className="bg-white p-6 rounded-2xl shadow">
-      <h2 className="text-xl font-semibold mb-2">Olá, {name}</h2>
-      <p className="text-sm text-gray-600 mb-4">
-        Veja seus pets cadastrados e envie novas emergências.
-      </p>
-
-      <Link
-        to="/criar-emergencia"
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Criar emergência
+  const sidebar = (
+    <>
+      <Link to="#" className="flex items-center gap-2 bg-gray-100 rounded-md px-3 py-2">
+        <Home size={18} /> Início
       </Link>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
-        {pets.map((pet) => (
-          <PetCard key={pet.id} pet={pet} />
-        ))}
+      <button
+        onClick={() => setShowPets((v) => !v)}
+        className="flex items-center gap-2 hover:bg-gray-100 rounded-md px-3 py-2 w-full text-left"
+      >
+        <Dog size={18} /> Meus Pets
+      </button>
+
+      <Link to="/novaEmergencia" className="flex items-center gap-2 hover:bg-gray-100 rounded-md px-3 py-2">
+        <AlertTriangle size={18} /> Registrar Emergência
+      </Link>
+
+      <Link to="/historicoEmergencias" className="flex items-center gap-2 hover:bg-gray-100 rounded-md px-3 py-2">
+        <History size={18} /> Histórico
+      </Link>
+    </>
+  );
+
+  return (
+    <DashboardLayout sidebar={sidebar}>
+      <div className="max-w-2xl mx-auto space-y-6">
+        <h2 className="text-2xl font-bold text-gray-800">Bem-vindo, {user?.name} 🐾</h2>
+        <p className="text-gray-500">O que você deseja fazer hoje?</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <button
+            onClick={() => setShowPets((v) => !v)}
+            className="bg-white shadow rounded-xl p-4 hover:bg-gray-50 border"
+          >
+            <Dog className="mx-auto mb-2" size={28} />
+            <span>{showPets ? "Fechar Pets" : "Cadastrar Pets"}</span>
+          </button>
+
+          <button
+            onClick={() => navigate("/novaEmergencia")}
+            className="bg-white shadow rounded-xl p-4 hover:bg-gray-50 border"
+          >
+            <AlertTriangle className="mx-auto mb-2 text-red-500" size={28} />
+            <span>Registrar Emergência</span>
+          </button>
+
+          <button
+            onClick={() => navigate("/historicoEmergencias")}
+            className="bg-white shadow rounded-xl p-4 hover:bg-gray-50 border"
+          >
+            <History className="mx-auto mb-2 text-blue-500" size={28} />
+            <span>Ver Histórico</span>
+          </button>
+        </div>
+
+        {showPets && (
+          <div className="mt-8 border-t pt-6">
+            <PetDashboard currentUser={user} />
+          </div>
+        )}
+
+        <button onClick={onLogout} className="mt-6 text-sm text-red-500 underline">
+          Sair
+        </button>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

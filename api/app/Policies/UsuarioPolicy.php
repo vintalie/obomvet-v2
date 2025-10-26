@@ -6,38 +6,46 @@ use App\Models\Usuario;
 
 class UsuarioPolicy
 {
+    /**
+     * Determine whether the user can view any models.
+     */
     public function viewAny(Usuario $user): bool
     {
-        return $user->tipo === 'admin';
+        return true; // Ajuste conforme regras de negócio
     }
 
-    public function view(Usuario $auth, Usuario $target): bool
+    /**
+     * Determine whether the user can view the model.
+     */
+    public function view(Usuario $user, Usuario $usuario): bool
     {
-        return $auth->id === $target->id || $auth->tipo === 'admin';
+        // por padrão permitimos visualizar; você pode restringir a apenas o próprio usuário
+        return true; // Ajuste conforme regras de negócio
     }
 
+    /**
+     * Determine whether the user can create models.
+     */
     public function create(Usuario $user): bool
     {
-        return $user->tipo === 'admin';
+        return true; // Ajuste conforme regras de negócio
     }
 
-    public function update(Usuario $auth, Usuario $target): bool
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(Usuario $user, Usuario $usuario): bool
     {
-        return $auth->id === $target->id || $auth->tipo === 'admin';
+        // Exemplo: apenas o próprio usuário pode atualizar seu registro
+        return $user->id === $usuario->id;
     }
 
-    public function delete(Usuario $auth, Usuario $target): bool
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(Usuario $user, Usuario $usuario): bool
     {
-        return $auth->id === $target->id || $auth->tipo === 'admin';
-    }
-
-    public function restore(Usuario $user, Usuario $target): bool
-    {
-        return $user->tipo === 'admin';
-    }
-
-    public function forceDelete(Usuario $user, Usuario $target): bool
-    {
-        return $user->tipo === 'admin';
+        // Exemplo: apenas o próprio usuário pode excluir seu registro
+        return $user->id === $usuario->id;
     }
 }

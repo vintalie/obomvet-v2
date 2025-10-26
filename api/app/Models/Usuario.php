@@ -1,16 +1,13 @@
 <?php
-
 namespace App\Models;
 
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-class Usuario extends Authenticatable implements MustVerifyEmail
+class Usuario extends Authenticatable implements JWTSubject
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use Notifiable;
 
     protected $fillable = [
         'name',
@@ -53,5 +50,15 @@ class Usuario extends Authenticatable implements MustVerifyEmail
     public function isClinica()
     {
         return $this->tipo === 'clinica';
+    }
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims()
+    {
+        return [];
     }
 }

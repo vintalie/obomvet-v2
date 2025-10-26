@@ -50,16 +50,16 @@ export default function PetDashboard({ currentUser }: Props) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
-
+    if (!currentUser && !currentUser.tutor_id) return;
     setLoading(true);
-    fetch(`${API_URL}/api/pets`, {
+    fetch(`${API_URL}/api/tutores/${currentUser.tutor_id}/pets`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {
         if (!res.ok) throw new Error("Erro ao buscar pets");
         const data = await res.json();
         const allPets = Array.isArray(data) ? data : data?.data || [];
-        setPets(allPets.filter((pet: Pet) => pet.tutor_id === currentUser.id));
+        setPets(allPets.filter((pet: Pet) => true));
       })
       .catch(() => setPets([]))
       .finally(() => setLoading(false));

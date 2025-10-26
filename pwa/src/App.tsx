@@ -30,6 +30,7 @@ export default function App() {
         <Route path="/features" element={<Features />} />
         <Route path="/about" element={<About />} />
         <Route path="/clinicPage" element={<ClinicPage />} />
+        <Route path="/clinicPage" element={<ClinicPage />} />
         {/* Redireciona qualquer rota desconhecida para a Home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
