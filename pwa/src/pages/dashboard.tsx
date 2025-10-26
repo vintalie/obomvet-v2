@@ -6,6 +6,8 @@ import VeterinarioDashboard from "../components/dashboard/veterinarioDashboard";
 import ClinicaDashboard from "../components/dashboard/clinicaDashboard";
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
+import echo from "../services/echo";
+
 
 interface User {
   id: number;
@@ -21,6 +23,7 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
+  // === Carregar usuário autenticado ===
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -52,7 +55,7 @@ export default function Dashboard() {
     })();
   }, [navigate, API_URL]);
 
-  // 🔔 Conexão Pusher / Echo para veterinário e clínica
+  // === Echo / Pusher / Notificações ===
   useEffect(() => {
     if (!user) return;
 
@@ -77,40 +80,71 @@ export default function Dashboard() {
           },
         },
       });
-      console.log("Token Echo:", token);
 
+      const sendNotificationToSW = (data: any) => {
+        if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: "SHOW_NOTIFICATION",
+            payload: data
+          });
+        } else {
+          // Fallback: mostra alerta caso SW não esteja ativo
+          alert(data.body || "Você recebeu uma notificação!");
+        }
+      };
+
+      // === Veterinário ===
       if (user.tipo === "veterinario") {
-
-        
-        echo.private("veterinarios").listen("NovaEmergenciaCriada", (data: any) => {
-          console.log("Nova emergência veterinário:", data);
-          alert(`🚨 Nova emergência registrada: ${data.emergencia.titulo}`);
-        });
+        echo.private("veterinarios")
+          .listen("NovaEmergencia", (data: any) => {
+            console.log("Nova emergência veterinário:", data);
+            sendNotificationToSW({
+              title: "🚨 Nova Emergência!",
+              body: `Emergência registrada: ${data.emergencia.titulo}`,
+              data: { url: `/emergencias/${data.emergencia.id}` },
+            });
+          })
+          .listen("NotificacaoDeTeste", (data: any) => {
+            console.log("Notificação de teste veterinário:", data);
+            sendNotificationToSW(data);
+          });
       }
 
+      // === Clínica ===
       if (user.tipo === "clinica") {
-
-        echo.private("clinicas").listen("NovaEmergenciaCriada", (data: any) => {
-          console.log("Nova emergência clínica:", data);
-          alert(`🚨 Nova emergência próxima: ${data.emergencia.titulo}`);
-        });
+        
+        echo.private("clinicas")
+          .listen("NovaEmergencia", (data: any) => {
+            console.log("Nova emergência clínica:", data);
+            sendNotificationToSW({
+              title: "🚨 Nova Emergência Próxima!",
+              body: `Emergência: ${data.emergencia.titulo}`,
+              data: { url: `/emergencias/${data.emergencia.id}` },
+            });
+          })
+          .listen("NotificacaoDeTeste", (data: any) => {
+            console.log("Notificação de teste clínica:", data);
+            sendNotificationToSW(data);
+          });
       }
+
     } catch (e) {
       console.error("Erro ao inicializar Pusher/Echo:", e);
     }
-
 
     return () => {
       if (echo) echo.disconnect();
     };
   }, [user, API_URL]);
 
+  // === Logout ===
   function handleLogout() {
     clearTokenFallback();
     setUser(null);
     navigate("/");
   }
 
+  // === Render ===
   if (loading) return <p className="p-6 text-center">Carregando...</p>;
   if (error) return <p className="p-6 text-center text-red-500">{error}</p>;
   if (!user) return null;
@@ -119,10 +153,8 @@ export default function Dashboard() {
     case "tutor":
       return <TutorDashboard user={user} onLogout={handleLogout} />;
     case "veterinario":
-    
       return <VeterinarioDashboard user={user} onLogout={handleLogout} />;
     case "clinica":
-    
       return <ClinicaDashboard user={user} onLogout={handleLogout} />;
     default:
       return <p>Tipo de usuário inválido.</p>;
