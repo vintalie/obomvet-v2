@@ -21,18 +21,19 @@ Reduzir o tempo de resposta em emergências veterinárias por meio de uma **cone
 
 ## 🧩 Documentos e Funcionalidades Principais
 
-| Nº | Documento / Caso de Uso | Ator Envolvido | Descrição |
-|----|--------------------------|----------------|------------|
-| 1  | **Cadastrar Pet** | Tutor | Cadastrar e gerenciar pets, incluindo espécie, raça, idade e condições médicas. |
-| 2  | **Criar Alerta de Emergência** | Tutor / Usuário Não Registrado | Criar alertas de emergência geolocalizados para notificar clínicas próximas. |
-| 3  | **Receber Notificação de Emergência** | Clínica / Veterinário Autônomo | Receber notificações de emergência com base na localização e disponibilidade. |
-| 4  | **Aceitar Emergência** | Clínica / Veterinário Autônomo | Visualizar detalhes básicos da emergência e confirmar disponibilidade para atendimento. |
-| 5  | **Gerenciar Veterinários** | Clínica | Designar veterinários específicos para atender emergências, otimizando o atendimento. |
-| 6  | **Gerenciar Disponibilidade** | Veterinário Autônomo | Definir áreas de atuação, horários de disponibilidade e tipos de serviço. |
-| 7  | **Transcrever Áudio** | Sistema | Transcrever o relato de áudio do tutor para texto e preencher automaticamente o formulário de emergência. |
-| 8  | **Visualizar Clínicas no Mapa** | Tutor | Exibir clínicas cadastradas em um mapa com filtros de especialidade e horário. |
-| 9  | **Definir Área de Cobertura da Clínica** | Clínica | Definir área geográfica de atendimento para limitar alertas recebidos. |
-| 10 | **Filtrar Alertas por Tipo de Emergência** | Clínica | Configurar filtros para receber alertas apenas de tipos específicos (ex: fratura, intoxicação, parto). |
+| Nº | Documento / Caso de Uso                              | Ator Envolvido                           | Descrição                                                                               |
+| -- | ---------------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------- |
+| 1  | **Registrar-se**                                     | Clínica / Veterinário / Tutor  | Permite o cadastro de novos perfis com informações pessoais e profissionais.            |
+| 2  | **Efetuar Login**                                    | Clínica / Veterinário / Tutor  | Autentica usuários registrados e libera acesso ao painel conforme o tipo de perfil.     |
+| 3  | **Manter Clínica no Mapa**                           | Clínica                        | Atualiza a localização e status da clínica para exibição no mapa de atendimento.        |
+| 4  | **Gerenciar Veterinários**                           | Clínica                        | Adiciona, remove ou atualiza veterinários vinculados à clínica.                         |
+| 5  | **Receber Notificações de Emergência** *(extend: 6)* | Clínica / Veterinário          | Recebe alertas de emergências próximas conforme localização e disponibilidade.          |
+| 6  | **Aceitar Emergência** *(extend: 7)*                 | Clínica / Veterinário          | Visualiza detalhes e confirma o atendimento de uma emergência recebida.                 |
+| 7  | **Receber Notificação de Emergência Aceita**         | Tutor / Usuário Não Registrado | Notifica os envolvidos quando uma emergência é aceita por uma clínica ou veterinário.   |
+| 8  | **Vincular Pets à Emergência**                       | Tutor                          | Associa um ou mais pets cadastrados ao registro de emergência.                          |
+| 9  | **Manter Pets**                                      | Tutor                          | Cadastra, edita e remove informações de animais de estimação do tutor.                  |
+| 10 | **Gerar Emergência** *(include: 7 e 8)*              | Tutor / Usuário Não Registrado | Cria um alerta de emergência geolocalizado e notifica clínicas e veterinários próximos. |
+
 
 ---
 
@@ -108,33 +109,23 @@ Reduzir o tempo de resposta em emergências veterinárias por meio de uma **cone
 
 | Camada | Tecnologia |
 |--------|-------------|
-| **Frontend** | React ou React Native |
+| **Frontend** | React (PWA) |
 | **Backend** | Laravel (PHP) |
-| **Banco de Dados** | MySQL ou PostgreSQL |
-| **Geolocalização** | Google Maps API / Mapbox |
-| **Notificações** | Firebase Cloud Messaging (FCM) |
-| **Armazenamento** | AWS S3 / Google Cloud Storage |
+| **Banco de Dados** | MySQL |
+| **Geolocalização** | OpenStreetMap / Nomination |
+| **Notificações** | Pusher |
+| **Armazenamento** | Hostgator (WebHost) |
 
 ---
 
 ## 🔐 Segurança
 
-- Autenticação por **API Token**
+- Autenticação por **JWT**
 - Comunicação via **HTTPS (TLS)**
 - Criptografia de dados sensíveis
 - Controle de acesso por **papel (role-based access)**
 - Logs e auditoria para rastreabilidade
-- Cumprimento parcial da **LGPD** (com mitigação via perímetro de visualização)
-
----
-
-## 🚀 Implantação e Infraestrutura
-
-- **Backend:** Hospedado em ambiente redundante (AWS ECS/EKS, GCP Cloud Run, etc.)
-- **Frontend:** Deploy via Vercel ou Netlify
-- **Banco de Dados:** PostgreSQL gerenciado (AWS RDS)
-- **Monitoramento:** Prometheus, Grafana e Sentry
-- **Backups:** Automáticos com política de retenção semanal
+- Cumprimento da **LGPD** (com mitigação via perímetro de visualização)
 
 ---
 

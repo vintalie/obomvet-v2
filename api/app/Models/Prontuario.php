@@ -54,3 +54,4 @@ class Prontuario extends Model
         return $this->morphMany(Anexo::class, 'anexable');
     }
 }
+}
