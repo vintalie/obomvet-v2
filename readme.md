@@ -96,13 +96,15 @@ Reduzir o tempo de resposta em emergências veterinárias por meio de uma **cone
 
 ## 🏗️ Modelo de Dados (Entidades Principais)
 
-- **Tutor:** id, nome, email, telefone, localização (lat, long)
-- **Pet:** id, tutor_id, nome, espécie, raça, idade, histórico médico
-- **Emergência:** id, tutor_id, pet_id, descrição, nível_urgência, localização, status, data_criação
-- **Clínica:** id, nome, endereço, raio_atendimento, especialidades, localização
-- **Veterinário:** id, nome, clínica_id (opcional), área_atuacao, disponibilidade
-- **Atendimento:** id, emergencia_id, clinica_id, veterinario_id, data_hora, diagnóstico, observações
-
+- **Usuário** (id, nome, email, senha, tipo)
+- **Tutor** (id, usuario_id, nome_completo, telefone_principal, telefone_alternativo, cpf)
+- **Pet** (id, nome, espécie, raça, data_nascimento, peso, alergias, tutor_id)
+- **Clínica** (id, usuario_id, nome_fantasia, cnpj, endereço, telefone_emergencia, localizacao, disponivel_24h)
+- **Veterinário** (id, usuario_id, clinica_id, nome_completo, crmv, especialidade, visita_tipo, telefone_emergencia, disponivel_24h, localizacao)
+- **Emergência** (id, pet_id, tutor_id, veterinario_id, clinica_id, descricao_sintomas, nivel_urgencia, status, data_abertura, localizacao)
+- **HistóricoAtendimento** (id, emergencia_id, veterinario_id, acao_realizada, data_acao)
+- **Prontuário** (id, pet_id, veterinario_id, clinica_id, emergencia_id, tipo_registro, descricao, diagnostico, prescricao, data_registro)
+- **Anexo** (id, arquivo, descricao, anexable_id, anexable_type)
 ---
 
 ## 🧱 Arquitetura e Tecnologias
@@ -129,7 +131,7 @@ Reduzir o tempo de resposta em emergências veterinárias por meio de uma **cone
 
 ---
 
-## 🧩 Observações Importantes
+## 🧩 Observações Importantes e Ideias
 
 > 🔒 **LGPD e RN07:**  
 > A exibição de dados pessoais do tutor só ocorre após a aceitação da emergência pela clínica.  
