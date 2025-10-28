@@ -10,49 +10,95 @@ class TutorController extends Controller
 {
     public function __construct()
     {
-        $this->authorizeResource(Tutor::class, 'tutor');
+        // Aplica políticas de autorização nos métodos padrões (exceto métodos customizados)
+        $this->authorizeResource(Tutor::class, 'tutor', [
+            'except' => ['getByUsuario', 'getPets', 'getEmergencias']
+        ]);
     }
 
+    // Listar todos os tutores
     public function index()
     {
-        return Tutor::all();
+        return response()->json(Tutor::all());
     }
 
+    // Criar tutor
     public function store(Request $request)
     {
-        return Tutor::create($request->all());
+        $data = $request->validate([
+            'usuario_id' => 'required|integer|exists:usuarios,id',
+            'nome' => 'required|string|max:255',
+            'telefone' => 'nullable|string|max:20',
+            'endereco' => 'nullable|string|max:255',
+        ]);
+
+        $tutor = Tutor::create($data);
+        return response()->json($tutor, 201);
     }
 
+    // Mostrar tutor específico
     public function show(Tutor $tutor)
     {
-        return $tutor;
+        return response()->json($tutor);
     }
 
+    // Atualizar tutor
     public function update(Request $request, Tutor $tutor)
     {
-        $tutor->update($request->all());
-        return $tutor;
+        $data = $request->validate([
+            'nome' => 'sometimes|required|string|max:255',
+            'telefone' => 'sometimes|nullable|string|max:20',
+            'endereco' => 'sometimes|nullable|string|max:255',
+        ]);
+
+        $tutor->update($data);
+        return response()->json($tutor);
     }
 
+    // Deletar tutor
     public function destroy(Tutor $tutor)
     {
         $tutor->delete();
         return response()->noContent();
     }
 
+    // Retorna pets do tutor
     public function getPets(Tutor $tutor)
     {
-        return $tutor->pets()->get();
+        return response()->json($tutor->pets);
     }
 
+    // Retorna emergências do tutor
     public function getEmergencias(Tutor $tutor)
     {
-        return $tutor->emergencias()->get();
+        return response()->json($tutor->emergencias);
     }
 
+    // Adiciona pet ao tutor
     public function storePet(Request $request, Tutor $tutor)
     {
-        $pet = $tutor->pets()->create($request->all());
+        $data = $request->validate([
+            'nome' => 'required|string|max:255',
+            'idade' => 'nullable|integer',
+            'raca' => 'nullable|string|max:100',
+            'peso' => 'nullable|numeric',
+        ]);
+
+        $pet = $tutor->pets()->create($data);
         return response()->json($pet, 201);
+    }
+
+    // Buscar tutor pelo usuário
+    public function getByUsuario($usuario_id)
+    {
+        $tutor = Tutor::with(['pets', 'emergencias'])
+                       ->where('usuario_id', $usuario_id)
+                       ->first();
+
+        if (!$tutor) {
+            return response()->json(['message' => 'Tutor não encontrado'], 404);
+        }
+
+        return response()->json($tutor);
     }
 }

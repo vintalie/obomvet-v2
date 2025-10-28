@@ -1,61 +1,79 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use App\Http\Controllers\Controller;
 use Orion\Concerns\DisableAuthorization;
 
 class IAController extends Controller
 {
-// use DisableAuthorization;
-    public function transcribe(Request $request)
+    // use DisableAuthorization;
+
+    /**
+     * Autorização para uso público (chave secreta)
+     */
+    private function authorizePublic(Request $request)
     {
-        // 1️⃣ Tentar obter tutor logado (se existir)
-        [$tutor, $pets] = $this->getTutorAndPets($request);
-
-        // 2️⃣ Transcrever o áudio
-        $transcription = $this->transcribeAudio($request->file('file'));
-
-        // 3️⃣ Criar prompt inteligente
-        $prompt = $this->buildAutofillPrompt($tutor, $pets, $transcription);
-
-        // 4️⃣ Enviar prompt para a IA
-        return $this->sendPromptToAI($prompt);
+        $key = $request->header('X-PUBLIC-IA-KEY') ?? $request->input('key');
+        if (!$key || $key !== env('PUBLIC_IA_KEY')) {
+            abort(403, 'Acesso negado.');
+        }
     }
 
     /**
-     * Obtém o tutor logado e seus pets (se houver).
-     * Permite também usuário deslogado.
-     *
-     * @return array [$tutor|null, Collection|array $pets]
+     * Transcrição para usuários logados
+     */
+    public function transcribeUnified(Request $request)
+{
+    // Se não estiver logado, checa chave pública
+    if (!$request->user()) {
+        $this->authorizePublic($request);
+    }
+
+    [$tutor, $pets] = $this->getTutorAndPets($request);
+    $transcription = $this->transcribeAudio($request->file('file'));
+    $prompt = $this->buildAutofillPrompt($tutor, $pets, $transcription);
+
+    return $this->sendPromptToAI($prompt);
+}
+
+public function analyzeTextUnified(Request $request)
+{
+    if (!$request->user()) {
+        $this->authorizePublic($request);
+    }
+
+    $request->validate(['text' => 'required|string']);
+    [$tutor, $pets] = $this->getTutorAndPets($request);
+    $text = $request->input('text');
+    $prompt = $this->buildAutofillPrompt($tutor, $pets, $text);
+
+    return $this->sendPromptToAI($prompt);
+}
+
+
+    /**
+     * Obtém tutor e pets
      */
     private function getTutorAndPets(Request $request)
     {
         $user = $request->user();
-
         if ($user && $user->tipo === 'tutor') {
             $tutor = $user->tutor;
-            // garante que $pets seja iterável (Collection ou array)
             $pets = $tutor ? ($tutor->pets ?? collect()) : collect();
             return [$tutor, $pets];
         }
-
-        // Se o usuário não estiver logado ou não for tutor, retorna nulos/vazio
         return [null, collect()];
     }
 
     /**
-     * Transcreve o áudio via API Whisper.
-     *
-     * @param \Illuminate\Http\UploadedFile|null $file
-     * @return string
+     * Transcreve áudio via Whisper
      */
     private function transcribeAudio($file)
     {
-        if (!$file) {
-            abort(400, 'Nenhum arquivo enviado.');
-        }
+        if (!$file) abort(400, 'Nenhum arquivo enviado.');
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
@@ -71,27 +89,20 @@ class IAController extends Controller
     }
 
     /**
-     * Monta o prompt com base no contexto e transcrição.
+     * Monta prompt
      */
     private function buildAutofillPrompt($tutor, $pets, $transcription)
     {
         $tutorLogado = $tutor ? 'sim' : 'não';
         $temPet = ($pets && count($pets) > 0) ? 'sim' : 'não';
 
-        // monta texto dos pets
         $petsText = '';
         foreach ($pets as $pet) {
             $petsText .= "- nome: {$pet->nome}, especie: {$pet->especie}, raca: {$pet->raca}, data_nascimento: {$pet->data_nascimento}, peso: {$pet->peso}\n";
         }
 
-        // monta texto resumido do tutor (fora do heredoc para evitar interpolação complexa)
-        if ($tutor) {
-            $tutorText = "- nome: {$tutor->nome_completo}, telefone: {$tutor->telefone_principal}, cpf: {$tutor->cpf}";
-        } else {
-            $tutorText = "nenhum";
-        }
+        $tutorText = $tutor ? "- nome: {$tutor->nome_completo}, telefone: {$tutor->telefone_principal}, cpf: {$tutor->cpf}" : "nenhum";
 
-        // usa heredoc com variáveis simples (sem expressões ternárias dentro)
         return <<<PROMPT
 Você é um assistente de triagem para emergências veterinárias.
 
@@ -148,7 +159,7 @@ PROMPT;
     }
 
     /**
-     * Envia o prompt para a API da OpenAI.
+     * Envia prompt para API da OpenAI
      */
     private function sendPromptToAI($prompt)
     {

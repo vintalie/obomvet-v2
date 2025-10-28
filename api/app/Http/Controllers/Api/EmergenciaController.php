@@ -19,9 +19,51 @@ class EmergenciaController extends Controller
     }
 
     public function store(Request $request)
-    {
-        return Emergencia::create($request->all());
+{
+    $user = $request->user();
+
+    if (!$user || !$user->tutor) {
+        return response()->json(['error' => 'Usuário tutor não autenticado'], 401);
     }
+
+    $validated = $request->validate([
+        'descricao_sintomas' => 'required|string',
+        'nivel_urgencia' => 'required|in:baixa,media,alta,critica',
+        'pet_id' => 'required|exists:pets,id',
+    ]);
+
+    // Define tutor_id automaticamente
+    $validated['tutor_id'] = $user->tutor->id;
+
+    // --- NOVO: Selecionar a clínica mais próxima ---
+    $pet = \App\Models\Pet::find($validated['pet_id']);
+
+    if ($pet && $pet->latitude && $pet->longitude) {
+        $clinica = \App\Models\Clinica::orderByRaw("
+            ST_Distance_Sphere(
+                point(latitude, longitude),
+                point(?, ?)
+            ) ASC
+        ", [$pet->latitude, $pet->longitude])->first();
+    } else {
+        // fallback: primeira clínica cadastrada
+        $clinica = \App\Models\Clinica::first();
+    }
+
+    if (!$clinica) {
+        return response()->json(['error' => 'Nenhuma clínica cadastrada'], 400);
+    }
+
+    $validated['clinica_id'] = $clinica->id;
+
+    $emergencia = Emergencia::create($validated);
+
+    return response()->json([
+        'emergencia' => $emergencia,
+        'clinica' => $clinica
+    ], 201);
+}
+
 
     public function show(Emergencia $emergencia)
     {
@@ -65,4 +107,19 @@ class EmergenciaController extends Controller
         ]);
         return response()->json($anexo, 201);
     }
+    public function meus(Request $request)
+{
+    $user = $request->user();
+    if (!$user) {
+        return response()->json(['error' => 'Usuário não autenticado'], 401);
+    }
+
+    $emergencias = \App\Models\Emergencia::with('pet')
+        ->where('tutor_id', $user->id)
+        ->orderByDesc('data_abertura')
+        ->get();
+
+    return response()->json($emergencias);
+}
+
 }

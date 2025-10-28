@@ -19,7 +19,7 @@ export default function ClinicPage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const navigate = useNavigate();
 
-  // Função para calcular distância em km entre dois pontos
+  // ---------- FUNÇÃO CALCULAR DISTÂNCIA ----------
   const calcularDistancia = (lat1: number, lng1: number, lat2: number, lng2: number) => {
     const toRad = (value: number) => (value * Math.PI) / 180;
     const R = 6371; // km
@@ -32,45 +32,40 @@ export default function ClinicPage() {
     return R * c;
   };
 
-  // Obter localização do usuário
+  // ---------- PEGAR LOCALIZAÇÃO DO USUÁRIO ----------
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ lat: latitude, lng: longitude });
-        },
+        (position) => setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude }),
         () => setUserLocation(null)
       );
     }
   }, []);
 
-  // Carregar clínicas do backend e calcular distância
+  // ---------- FETCH DAS CLÍNICAS ----------
   useEffect(() => {
     fetch("http://localhost:8000/api/clinicas-publicas")
       .then((res) => res.json())
       .then((data: Clinic[]) => {
+        let dataComDistancia = data;
+
         if (userLocation) {
-          const dataComDistancia = data.map((clinic) => {
+          dataComDistancia = data.map((clinic) => {
             const [lat, lng] = clinic.localizacao.split(",").map(Number);
             return { ...clinic, distancia: calcularDistancia(userLocation.lat, userLocation.lng, lat, lng) };
           });
           dataComDistancia.sort((a, b) => (a.distancia! - b.distancia!));
-          setClinics(dataComDistancia);
-        } else {
-          setClinics(data);
         }
+
+        setClinics(dataComDistancia);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error("Erro ao buscar clínicas:", err));
   }, [userLocation]);
 
-  // Função para abrir rota no Google Maps
+  // ---------- ABRIR ROTA NO GOOGLE MAPS ----------
   const abrirRota = (clinic: Clinic) => {
     const destino = clinic.localizacao;
-    let origem = "";
-    if (userLocation) {
-      origem = `${userLocation.lat},${userLocation.lng}`;
-    }
+    const origem = userLocation ? `${userLocation.lat},${userLocation.lng}` : "";
     const url = origem
       ? `https://www.google.com/maps/dir/?api=1&origin=${origem}&destination=${destino}&travelmode=driving`
       : `https://www.google.com/maps/dir/?api=1&destination=${destino}&travelmode=driving`;
@@ -92,7 +87,7 @@ export default function ClinicPage() {
       <main className="flex-1 flex flex-col md:flex-row items-start justify-center pt-6 px-6 md:px-16 gap-6">
         {/* Mapa */}
         <div className="w-full md:w-2/3 h-[500px] md:h-[700px] rounded-2xl overflow-hidden shadow-lg">
-          <ClinicMap selectedClinic={selectedClinic} />
+          <ClinicMap selectedClinic={selectedClinic} clinics={clinics} />
         </div>
 
         {/* Lista de clínicas */}

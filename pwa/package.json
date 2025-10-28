@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tippyjs/react": "^4.2.6",
     "axios": "^1.12.2",
     "framer-motion": "^12.23.24",
     "laravel-echo": "^2.2.4",
@@ -18,7 +19,8 @@
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
     "react-leaflet": "^4.2.1",
-    "react-router-dom": "^7.9.3"
+    "react-router-dom": "^7.9.3",
+    "tippy.js": "^6.3.7"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.21",

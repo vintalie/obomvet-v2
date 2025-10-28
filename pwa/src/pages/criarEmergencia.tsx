@@ -23,22 +23,16 @@ interface AutofillResponse {
   faltando?: string[];
 }
 
+interface Clinica {
+  id: number;
+  nome_fantasia: string;
+  telefone_principal: string;
+  endereco?: string;
+}
+
 const URGENCIAS = ["baixa", "media", "alta", "critica"] as const;
 
 export default function ReportInput() {
-  const [isRecording, setIsRecording] = useState(false);
-  const [textInput, setTextInput] = useState("");
-  const [report, setReport] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [transcribedText, setTranscribedText] = useState("");
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [aiResponse, setAiResponse] = useState<AutofillResponse | null>(null);
-  const [missingFields, setMissingFields] = useState<string[]>([]);
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<EmergencyForm>({
@@ -46,12 +40,42 @@ export default function ReportInput() {
     nivel_urgencia: "media",
   });
 
-  const [pets, setPets] = useState<{ id: string; name: string }[]>([
-    { id: "1", name: "Rex" },
-    { id: "2", name: "Mimi" },
-    { id: "3", name: "Thor" },
-  ]);
+  const [pets, setPets] = useState<{ id: string; nome: string }[]>([]);
+  const [token, setToken] = useState<string | null>(null);
 
+  const [isRecording, setIsRecording] = useState(false);
+  const [textInput, setTextInput] = useState("");
+  const [transcribedText, setTranscribedText] = useState("");
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [aiResponse, setAiResponse] = useState<AutofillResponse | null>(null);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [report, setReport] = useState<string | null>(null);
+  const [clinica, setClinica] = useState<Clinica | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // ==== CHECAR LOGIN E PEGAR PETS ====
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    setToken(t);
+
+    if (t) {
+      fetch("http://localhost:8000/api/pets", {
+        headers: { Authorization: `Bearer ${t}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setPets(data);
+        })
+        .catch((err) => console.error("Erro ao buscar pets:", err));
+    }
+  }, []);
+
+  // ==== SINCRONIZAR TEXTO TRANSCRITO ====
   useEffect(() => {
     if (transcribedText) {
       setTextInput(transcribedText);
@@ -59,7 +83,7 @@ export default function ReportInput() {
     }
   }, [transcribedText]);
 
-  // === AUDIO ===
+  // ==== ÁUDIO ====
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -83,19 +107,18 @@ export default function ReportInput() {
           const res = await fetch("http://localhost:8000/api/ia/transcribe", {
             method: "POST",
             body: formDataAudio,
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
           });
 
           const text = await res.text();
-          let data;
-          try {
-            data = JSON.parse(text);
-          } catch {
-            console.warn("Resposta da IA não é JSON:", text);
-            setError("Não foi possível interpretar a resposta da IA.");
-            return;
-          }
+          const dataParsed = cleanJson(text);
 
-          setTranscribedText(data.text || "");
+          if (dataParsed?.text) {
+            setTranscribedText(dataParsed.text);
+          } else {
+            console.warn("Não era JSON válido, usando texto bruto:", text);
+            setTranscribedText(text); // fallback
+          }
         } catch (err: any) {
           setError(err.message);
         } finally {
@@ -123,16 +146,22 @@ export default function ReportInput() {
     setIsRecording(false);
   }
 
-  // === FUNÇÃO PARA LIMPAR JSON DA IA ===
+  // ==== FUNÇÃO PARA LIMPAR JSON DA IA ====
   const cleanJson = (text: string) => {
     try {
       return JSON.parse(text.replace(/^\uFEFF/, "").trim());
     } catch {
+      const match = text.match(/\{.*\}/s);
+      if (match) {
+        try {
+          return JSON.parse(match[0]);
+        } catch {}
+      }
       return null;
     }
   };
 
-  // === IA ANÁLISE DE TEXTO ===
+  // ==== ANALISAR TEXTO COM IA ====
   async function analyzeTextWithAI() {
     if (!textInput.trim()) {
       alert("Digite algo antes de analisar com a IA");
@@ -145,9 +174,12 @@ export default function ReportInput() {
     setMissingFields([]);
 
     try {
-      const res = await fetch("http://localhost:8000/api/ia/analyze-text", {
+      const headers: any = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch("http://localhost:8000/api/ia/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ text: textInput.trim() }),
       });
 
@@ -177,7 +209,7 @@ export default function ReportInput() {
     }
   }
 
-  // === ENVIO ===
+  // ==== ENVIO DO RELATÓRIO ====
   async function handleSubmit() {
     if (!formData.descricao_sintomas.trim()) {
       alert("Por favor, descreva os sintomas");
@@ -187,14 +219,15 @@ export default function ReportInput() {
     setLoading(true);
     setError("");
     setReport(null);
+    setClinica(null);
 
     try {
       let petId: number | null = formData.pet_id ? Number(formData.pet_id) : null;
 
       if (!petId && formData.nome_pet?.trim()) {
-        const resPet = await fetch("http://localhost:8000/api/pets/public", {
+        const resPet = await fetch("http://localhost:8000/api/tutores/1/pets", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ nome: formData.nome_pet.trim() }),
         });
 
@@ -207,11 +240,11 @@ export default function ReportInput() {
 
         const dataPet = await resPet.json();
         petId = Number(dataPet.data.id);
-        setPets((prev) => [...prev, { id: String(petId), name: formData.nome_pet!.trim() }]);
+        setPets((prev) => [...prev, { id: String(petId), nome: formData.nome_pet!.trim() }]);
       }
 
-      if (!petId) {
-        alert("Selecione ou cadastre o nome do pet antes de enviar.");
+      if (!petId && !formData.nome_pet?.trim()) {
+        alert("Por favor, selecione ou digite o nome do pet");
         setLoading(false);
         return;
       }
@@ -227,15 +260,19 @@ export default function ReportInput() {
         return;
       }
 
-      const payload = {
+      const payload: any = {
         descricao_sintomas: formData.descricao_sintomas.trim(),
         nivel_urgencia,
         pet_id: petId,
       };
 
-      const res = await fetch("http://localhost:8000/api/emergencias", {
+      const url = "http://localhost:8000/api/emergencias";
+      const headers: any = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers,
         body: JSON.stringify(payload),
       });
 
@@ -246,12 +283,11 @@ export default function ReportInput() {
         return;
       }
 
-  const token = localStorage.getItem("token"); // ou getToken()
-  console.log("Token atual:", token); // <-- aqui você verá no console
-  if (!token) return;
+      const data = await res.json();
 
-      await res.json();
       setReport("Emergência registrada com sucesso!");
+      if (data.clinica) setClinica(data.clinica);
+
       setFormData({ descricao_sintomas: "", nivel_urgencia: "media" });
       setTextInput("");
       setTranscribedText("");
@@ -265,6 +301,7 @@ export default function ReportInput() {
     }
   }
 
+  // ==== JSX ====
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#EAF9F5] via-[#D8F3DC] to-[#C3E5D0] flex flex-col">
       <Navbar />
@@ -292,51 +329,59 @@ export default function ReportInput() {
             </div>
           )}
           {report && (
-            <div className="flex items-center gap-2 text-green-600 text-sm mb-3">
-              <CheckCircle2 className="w-4 h-4" /> {report}
-            </div>
-          )}
-
-          {aiResponse && (
-            <div className="p-4 bg-[#F0FBF8] border border-[#B3E6D9] rounded-xl mb-5">
-              <div className="flex items-center gap-2 mb-2">
-                <ClipboardList className="text-[#25A18E]" />
-                <h2 className="font-semibold text-[#004E64]">Análise da IA</h2>
+            <div className="flex flex-col gap-1 text-green-600 text-sm mb-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" /> {report}
               </div>
-              {aiResponse.preenchidos && (
-                <p className="text-sm text-gray-700 mb-1">
-                  Campos preenchidos: <span className="font-medium">{Object.keys(aiResponse.preenchidos).join(", ")}</span>
-                </p>
+              {clinica && (
+                <div className="text-gray-700 text-xs">
+                  Clínica: {clinica.nome_fantasia} - Contato: {clinica.telefone_principal}
+                </div>
               )}
-              {missingFields.length > 0 && <p className="text-sm text-red-600">Faltando: {missingFields.join(", ")}</p>}
             </div>
           )}
 
-          {/* FORMULÁRIO */}
+
+          {/* FORMULÁRIO PET */}
           <div className="space-y-4 mb-6">
             <div>
               <label className="block text-sm font-medium mb-2 text-[#004E64]">
-                Selecione o Pet (ou digite para cadastro rápido):
+                Pet:
               </label>
-              {pets.length > 0 && (
-                <select
-                  value={formData.pet_id || ""}
-                  onChange={(e) => setFormData((p) => ({ ...p, pet_id: e.target.value, nome_pet: "" }))}
+
+              {token ? (
+                <>
+                  <select
+                    value={formData.pet_id || ""}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, pet_id: e.target.value, nome_pet: "" }))
+                    }
+                    className="w-full p-2 border border-[#C9E4D9] rounded-lg focus:ring-2 focus:ring-[#25A18E]/40 outline-none mb-2"
+                  >
+                    <option value="">Selecione um pet</option>
+                    {pets.map((pet) => (
+                      <option key={pet.id} value={pet.id}>
+                        {pet.nome}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Ou digite o nome do pet para cadastro rápido"
+                    value={formData.nome_pet || ""}
+                    onChange={(e) => setFormData((p) => ({ ...p, nome_pet: e.target.value, pet_id: "" }))}
+                    className="w-full p-2 border border-[#C9E4D9] rounded-lg focus:ring-2 focus:ring-[#25A18E]/40 outline-none"
+                  />
+                </>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="Digite o nome do pet"
+                  value={formData.nome_pet || ""}
+                  onChange={(e) => setFormData((p) => ({ ...p, nome_pet: e.target.value }))}
                   className="w-full p-2 border border-[#C9E4D9] rounded-lg focus:ring-2 focus:ring-[#25A18E]/40 outline-none"
-                >
-                  <option value="">Selecione um pet</option>
-                  {pets.map((pet) => (
-                    <option key={pet.id} value={pet.id}>{pet.name}</option>
-                  ))}
-                </select>
+                />
               )}
-              <input
-                type="text"
-                placeholder="Nome do pet (opcional)"
-                value={formData.nome_pet || ""}
-                onChange={(e) => setFormData((p) => ({ ...p, nome_pet: e.target.value, pet_id: "" }))}
-                className="w-full p-2 border border-[#C9E4D9] rounded-lg focus:ring-2 focus:ring-[#25A18E]/40 outline-none mt-2"
-              />
             </div>
 
             <div>
@@ -390,7 +435,6 @@ export default function ReportInput() {
               className="w-full p-3 border border-[#C9E4D9] rounded-lg focus:ring-2 focus:ring-[#25A18E]/40 outline-none h-32 resize-none"
             />
 
-            {/* Botão de analisar texto */}
             <div className="flex gap-3 mb-3 mt-2">
               <button
                 onClick={analyzeTextWithAI}

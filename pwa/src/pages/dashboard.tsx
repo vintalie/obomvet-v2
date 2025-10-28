@@ -4,6 +4,7 @@ import { getToken, clearTokenFallback, getUser } from "../utils/auth";
 import TutorDashboard from "../components/dashboard/tutorDashboard";
 import VeterinarioDashboard from "../components/dashboard/veterinarioDashboard";
 import ClinicaDashboard from "../components/dashboard/clinicaDashboard";
+import PetDashboard from "../components/dashboard/petDashboard";
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
 
@@ -19,8 +20,11 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<"home" | "pets" | "reports">("home");
+
   const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
+  // ---------- BUSCA DADOS DO USUÁRIO ----------
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -39,9 +43,7 @@ export default function Dashboard() {
         const res = await fetch(`${API_URL}/api/usuarios/${currentUser.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         if (!res.ok) throw new Error("Erro ao buscar dados do usuário.");
-
         const data = await res.json();
         setUser(data);
       } catch (err: any) {
@@ -52,10 +54,9 @@ export default function Dashboard() {
     })();
   }, [navigate, API_URL]);
 
-  // 🔔 Conexão Pusher / Echo para veterinário e clínica
+  // ---------- CONEXÃO PUSHER / ECHO ----------
   useEffect(() => {
     if (!user) return;
-
     const token = getToken();
     if (!token) return;
 
@@ -71,34 +72,24 @@ export default function Dashboard() {
         forceTLS: true,
         authEndpoint: `${API_URL}/broadcasting/auth`,
         auth: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
         },
       });
-      console.log("Token Echo:", token);
 
       if (user.tipo === "veterinario") {
-
-        
         echo.private("veterinarios").listen("NovaEmergenciaCriada", (data: any) => {
-          console.log("Nova emergência veterinário:", data);
           alert(`🚨 Nova emergência registrada: ${data.emergencia.titulo}`);
         });
       }
 
       if (user.tipo === "clinica") {
-
         echo.private("clinicas").listen("NovaEmergenciaCriada", (data: any) => {
-          console.log("Nova emergência clínica:", data);
           alert(`🚨 Nova emergência próxima: ${data.emergencia.titulo}`);
         });
       }
     } catch (e) {
       console.error("Erro ao inicializar Pusher/Echo:", e);
     }
-
 
     return () => {
       if (echo) echo.disconnect();
@@ -115,15 +106,26 @@ export default function Dashboard() {
   if (error) return <p className="p-6 text-center text-red-500">{error}</p>;
   if (!user) return null;
 
+  // ---------- RENDER POR TIPO ----------
   switch (user.tipo) {
     case "tutor":
-      return <TutorDashboard user={user} onLogout={handleLogout} />;
+      return (
+        <TutorDashboard
+          user={user}
+          onLogout={handleLogout}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab)}
+        >
+          {activeTab === "pets" && <PetDashboard currentUser={user} />}
+        </TutorDashboard>
+      );
+
     case "veterinario":
-    
       return <VeterinarioDashboard user={user} onLogout={handleLogout} />;
+
     case "clinica":
-    
       return <ClinicaDashboard user={user} onLogout={handleLogout} />;
+
     default:
       return <p>Tipo de usuário inválido.</p>;
   }
