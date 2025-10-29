@@ -1,8 +1,7 @@
 <?php
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\{AnexoController, ClinicaController, EmergenciaController, HistoricoAtendimentoController, PetController, ProntuarioController, TutorController, UsuarioController, VeterinarioController};
-use App\Http\Controllers\Api\IAController;
+use App\Http\Controllers\Api\{AnexoController, ClinicaController, EmergenciaController, HistoricoAtendimentoController, PetController, ProntuarioController, TutorController, UsuarioController, VeterinarioController, IAController, PushController};
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 
@@ -92,11 +91,6 @@ Route::post('/email/resend', function (Request $request) {
 })->middleware(['auth:sanctum'])->name('verification.send');
 
 
-
-Route::post('/push/subscribe', function (Request $request) {
-    $request->user()->updatePushSubscription(
-        $request->input('endpoint'),
-        $request->input('keys.p256dh'),
-        $request->input('keys.auth')
-    );
-});
+// routes/api.php
+Route::post('/save-subscription', [PushController::class, 'store']);
+Route::post('/send-push', [PushController::class, 'send']);

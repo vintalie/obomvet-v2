@@ -4,10 +4,7 @@ import { getToken, clearTokenFallback, getUser } from "../utils/auth";
 import TutorDashboard from "../components/dashboard/tutorDashboard";
 import VeterinarioDashboard from "../components/dashboard/veterinarioDashboard";
 import ClinicaDashboard from "../components/dashboard/clinicaDashboard";
-import Echo from "laravel-echo";
-import Pusher from "pusher-js";
-import echo from "../services/echo";
-
+import { echo } from "../services/echo";
 
 interface User {
   id: number;
@@ -56,86 +53,57 @@ export default function Dashboard() {
   }, [navigate, API_URL]);
 
   // === Echo / Pusher / Notificações ===
-  useEffect(() => {
-    if (!user) return;
+useEffect(() => {
+  if (!user) return;
 
-    const token = getToken();
-    if (!token) return;
+  let channel: any;
 
-    let echo: Echo | null = null;
-
-    try {
-      window.Pusher = Pusher;
-
-      echo = new Echo({
-        broadcaster: "pusher",
-        key: import.meta.env.VITE_PUSHER_APP_KEY,
-        cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-        forceTLS: true,
-        authEndpoint: `${API_URL}/broadcasting/auth`,
-        auth: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        },
+  const sendNotificationToSW = (event: any, titlePrefix = "🚨 Nova Emergência!") => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification(titlePrefix, {
+          body: "Emergência registrada",
+          icon: "/icons/icon-192x192.png",
+          badge: "/icons/icon-72x72.png",
+          data: { url: `/emergencias/${event.id}` },
+          vibrate: [200, 100, 200],
+          requireInteraction: true,
+        });
       });
-
-      const sendNotificationToSW = (data: any) => {
-        if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: "SHOW_NOTIFICATION",
-            payload: data
-          });
-        } else {
-          // Fallback: mostra alerta caso SW não esteja ativo
-          alert(data.body || "Você recebeu uma notificação!");
-        }
-      };
-
-      // === Veterinário ===
-      if (user.tipo === "veterinario") {
-        echo.private("veterinarios")
-          .listen("NovaEmergencia", (data: any) => {
-            console.log("Nova emergência veterinário:", data);
-            sendNotificationToSW({
-              title: "🚨 Nova Emergência!",
-              body: `Emergência registrada: ${data.emergencia.titulo}`,
-              data: { url: `/emergencias/${data.emergencia.id}` },
-            });
-          })
-          .listen("NotificacaoDeTeste", (data: any) => {
-            console.log("Notificação de teste veterinário:", data);
-            sendNotificationToSW(data);
-          });
-      }
-
-      // === Clínica ===
-      if (user.tipo === "clinica") {
-        
-        echo.private("clinicas")
-          .listen("NovaEmergencia", (data: any) => {
-            console.log("Nova emergência clínica:", data);
-            sendNotificationToSW({
-              title: "🚨 Nova Emergência Próxima!",
-              body: `Emergência: ${data.emergencia.titulo}`,
-              data: { url: `/emergencias/${data.emergencia.id}` },
-            });
-          })
-          .listen("NotificacaoDeTeste", (data: any) => {
-            console.log("Notificação de teste clínica:", data);
-            sendNotificationToSW(data);
-          });
-      }
-
-    } catch (e) {
-      console.error("Erro ao inicializar Pusher/Echo:", e);
+    } else {
+      alert("Nova emergência!");
     }
+  };
 
-    return () => {
-      if (echo) echo.disconnect();
-    };
-  }, [user, API_URL]);
+  if (user.tipo === "veterinario") {
+    channel = echo.private("veterinarios");
+
+    channel.subscribed(() => console.log("✅ Subscrito ao canal privado veterinarios"));
+
+    channel.listen(".NovaEmergencia", (event: any) => {
+      console.log("🚨 Evento veterinário .NovaEmergencia recebido:", event);
+      sendNotificationToSW(event, "🚨 Nova Emergência Veterinário!");
+    });
+  }
+
+  if (user.tipo === "clinica") {
+    channel = echo.private("clinicas");
+
+    channel.subscribed(() => console.log("✅ Subscrito ao canal privado clinicas"));
+
+    channel.listen(".NovaEmergencia", (event: any) => {
+      console.log("🚨 Evento clínica .NovaEmergencia recebido:", event);
+      sendNotificationToSW(event, "🚨 Nova Emergência Próxima!");
+    });
+  }
+
+  // ❌ Remover unsubscribe automático
+  // return () => {
+  //   if (channel) channel.unsubscribe();
+  // };
+
+}, [user]);
+
 
   // === Logout ===
   function handleLogout() {

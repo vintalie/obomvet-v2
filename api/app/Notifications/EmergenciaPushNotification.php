@@ -18,7 +18,7 @@ class EmergenciaPushNotification extends Notification implements ShouldQueue
 
     public function via($notifiable)
     {
-        return ['webpush'];
+        return ['broadcast'];
     }
 
     public function toWebPush($notifiable, $notification)
