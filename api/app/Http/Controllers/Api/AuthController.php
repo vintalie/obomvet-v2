@@ -69,7 +69,6 @@ class AuthController extends Controller
             'tipo' => $validated['tipo'],
         ]);
 
-        // Cria relação com o tipo específico
         match ($user->tipo) {
             'tutor' => $user->tutor()->create([
                 'nome_completo' => $validated['nome_completo'],
@@ -101,7 +100,6 @@ class AuthController extends Controller
 
         event(new Registered($user));
 
-        // Gera o token JWT automaticamente após registro
         $token = JWTAuth::fromUser($user);
 
         $response = [
@@ -173,7 +171,6 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         try {
-            // Usando JWT: invalida o token presente no header Authorization.
             $token = JWTAuth::getToken();
 
             if (! $token) {

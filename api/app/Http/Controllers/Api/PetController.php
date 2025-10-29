@@ -53,10 +53,14 @@ class PetController extends Controller
 
     public function storeEmergencia(Request $request, Pet $pet)
     {
-        $emergencia = $pet->emergencias()->create($request->all());
+        $data = $request->all();
+        $data['tutor_id'] = $pet->tutor()->first()->id;
+        $data['veterinario_id'] = null;
+        
+        $emergencia = $pet->emergencias()->create($data);
 
-        // Dispara a notificação push via Pusher
         NovaEmergencia::dispatch($emergencia);
+        
         return response()->json($emergencia, 201);
     }
 
