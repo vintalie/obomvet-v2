@@ -13,6 +13,7 @@ import ClinicPage from "./pages/clinicPage";
 import { DarkModeProvider } from "./contexts/DarkModeContext";
 import 'tippy.js/dist/tippy.css';
 
+
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const token = getToken();
   return token ? children : <Navigate to="/" />;

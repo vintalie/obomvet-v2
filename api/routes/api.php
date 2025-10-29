@@ -34,7 +34,7 @@ Route::middleware('throttle:5,1')->group(function () {
     Route::post('ia/analyze', [IAController::class, 'analyzeTextUnified']);
 });
 
-Route::post('/emergencias', [EmergenciaController::class, 'store']);
+
 Route::get('/clinicas-publicas', [ClinicaController::class, 'indexPublic']);
 
 // ------------------------
@@ -42,6 +42,10 @@ Route::get('/clinicas-publicas', [ClinicaController::class, 'indexPublic']);
 // ------------------------
 Route::middleware('auth:api')->group(function () {
 
+    // Emergências
+    Route::post('/emergencias', [EmergenciaController::class, 'store']);
+    Route::get('/clinica/emergencias', [EmergenciaController::class, 'porClinica']);
+    
     // Usuários
     Route::apiResource('usuarios', UsuarioController::class);
 
