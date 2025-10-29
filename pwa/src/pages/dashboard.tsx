@@ -5,6 +5,11 @@ import TutorDashboard from "../components/dashboard/tutorDashboard";
 import VeterinarioDashboard from "../components/dashboard/veterinarioDashboard";
 import ClinicaDashboard from "../components/dashboard/clinicaDashboard";
 import { echo } from "../services/echo";
+=======
+import PetDashboard from "../components/dashboard/petDashboard";
+import Echo from "laravel-echo";
+import Pusher from "pusher-js";
+>>>>>>> 695736a7a13b04daaaf2ded0f053b8ee4eb83038
 
 interface User {
   id: number;

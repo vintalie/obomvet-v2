@@ -8,10 +8,9 @@ type UserType = "tutor" | "clinica";
 export default function Register() {
   const [tipo, setTipo] = useState<UserType>("tutor");
   const [formData, setFormData] = useState<any>({
-    name: "",
+    nome_completo: "",
     email: "",
     password: "",
-    nome_completo: "",
     telefone_principal: "",
     telefone_alternativo: "",
     cpf: "",
@@ -32,7 +31,6 @@ export default function Register() {
 
   const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
-  // Função para pegar coordenadas a partir do endereço
   async function getCoordinates(endereco: string): Promise<string | null> {
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
@@ -40,7 +38,6 @@ export default function Register() {
       )}`;
       const res = await fetch(url);
       const data = await res.json();
-
       if (data && data.length > 0) {
         const { lat, lon } = data[0];
         return `${lat},${lon}`;
@@ -53,10 +50,14 @@ export default function Register() {
     }
   }
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) {
     const target = e.target as HTMLInputElement | HTMLSelectElement;
     const value =
-      target.type === "checkbox" ? (target as HTMLInputElement).checked : target.value;
+      target.type === "checkbox"
+        ? (target as HTMLInputElement).checked
+        : target.value;
     setFormData((prev: any) => ({ ...prev, [target.name]: value }));
   }
 
@@ -64,8 +65,8 @@ export default function Register() {
     return cpf.length === 11 && /^\d+$/.test(cpf);
   }
 
-  function isValidCNPJ(cnpj: string) {
-    return cnpj.length === 14 && /^\d+$/.test(cnpj);
+  function isValidEmail(email: string) {
+    return /\S+@\S+\.\S+/.test(email);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -74,13 +75,13 @@ export default function Register() {
     setLoading(true);
 
     // Validações simples
-    if (tipo === "tutor" && !isValidCPF(formData.cpf)) {
-      setError("CPF inválido. Deve conter 11 números.");
+    if (!isValidEmail(formData.email)) {
+      setError("Email inválido.");
       setLoading(false);
       return;
     }
-    if (tipo === "clinica" && !isValidCNPJ(formData.cnpj)) {
-      setError("CNPJ inválido. Deve conter 14 números.");
+    if (tipo === "tutor" && !isValidCPF(formData.cpf)) {
+      setError("CPF inválido. Deve conter 11 números.");
       setLoading(false);
       return;
     }
@@ -88,46 +89,48 @@ export default function Register() {
     try {
       let payload: any = {};
 
-      if (tipo === "tutor") {
-        payload = {
-          name: formData.nome_completo,
-          email: formData.email,
-          password: formData.password,
-          tipo: "tutor",
-          nome_completo: formData.nome_completo,
-          telefone_principal: formData.telefone_principal,
-          telefone_alternativo: formData.telefone_alternativo,
-          cpf: formData.cpf,
-        };
-      } else {
-        // Gera coordenadas automaticamente se o usuário não digitou
-        let localizacao = formData.localizacao;
-        if (!localizacao && formData.endereco) {
-          const coords = await getCoordinates(formData.endereco);
-          if (coords) localizacao = coords;
-          else alert(
-            "Não foi possível obter coordenadas a partir do endereço. Verifique o endereço."
-          );
-        }
+      // para tutor
+if (tipo === "tutor") {
+  payload = {
+    // backend espera 'name'
+    name: formData.nome_completo || "",
+    nome_completo: formData.nome_completo,
+    email: formData.email,
+    password: formData.password,
+    tipo: "tutor",
+    telefone_principal: formData.telefone_principal,
+    telefone_alternativo: formData.telefone_alternativo || null,
+    cpf: formData.cpf,
+  };
+} else {
+  // clinica
+  let localizacao = formData.localizacao;
+  if (!localizacao && formData.endereco) {
+    const coords = await getCoordinates(formData.endereco);
+    localizacao = coords || "0,0";
+  }
 
-        payload = {
-          name: formData.nome_completo || formData.name,
-          email: formData.email,
-          password: formData.password,
-          tipo: "clinica",
-          cnpj: formData.cnpj,
-          nome_fantasia: formData.nome_fantasia || formData.nome_completo,
-          razao_social: formData.razao_social || formData.nome_completo,
-          endereco: formData.endereco || "Endereço padrão",
-          telefone_principal: formData.telefone_principal || formData.telefone_emergencia,
-          telefone_emergencia: formData.telefone_emergencia,
-          horario_funcionamento: formData.horario_funcionamento,
-          disponivel_24h: formData.disponivel_24h,
-          publica: formData.publica,
-          localizacao,
-          email_contato: formData.email_contato || formData.email,
-        };
-      }
+  payload = {
+    // backend espera 'name' também
+    name: formData.nome_fantasia || formData.nome_completo || "",
+    nome_completo: formData.nome_completo || formData.nome_fantasia,
+    email: formData.email,
+    password: formData.password,
+    tipo: "clinica",
+    cnpj: formData.cnpj || null,
+    nome_fantasia: formData.nome_fantasia || formData.nome_completo,
+    razao_social: formData.razao_social || formData.nome_completo,
+    endereco: formData.endereco || "",
+    telefone_principal: formData.telefone_principal,
+    telefone_emergencia: formData.telefone_emergencia,
+    horario_funcionamento: formData.horario_funcionamento,
+    // garanta que seja booleano (não string)
+    disponivel_24h: !!formData.disponivel_24h,
+    publica: formData.publica ?? false,
+    localizacao,
+    email_contato: formData.email_contato || formData.email,
+  };
+}
 
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
@@ -135,19 +138,22 @@ export default function Register() {
         body: JSON.stringify(payload),
       });
 
+      const data = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        let firstError = data.message || "Erro no cadastro";
-        if (data.errors) {
-          const fieldErrors = Object.values(data.errors).flat();
-          if (fieldErrors.length > 0) firstError = fieldErrors[0];
+        // Trata erros de validação 422
+        if (response.status === 422 && data.errors) {
+          const firstError = Object.values(data.errors).flat()[0];
+          throw new Error(firstError);
+        } else {
+          throw new Error(data.error || "Erro no cadastro");
         }
-        throw new Error(firstError);
       }
 
       alert("Cadastro realizado com sucesso!");
       navigate("/");
     } catch (err: any) {
+      console.error("Erro no registro:", err);
       setError(err.message || "Erro inesperado");
     } finally {
       setLoading(false);
@@ -192,7 +198,9 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-1 font-medium text-[#004E64]">Tipo de usuário</label>
+            <label className="block mb-1 font-medium text-[#004E64]">
+              Tipo de usuário
+            </label>
             <select
               name="tipo"
               value={tipo}
@@ -204,7 +212,6 @@ export default function Register() {
             </select>
           </div>
 
-          {/* Campos comuns */}
           <input
             type="text"
             name="nome_completo"
@@ -233,7 +240,6 @@ export default function Register() {
             required
           />
 
-          {/* Campos específicos */}
           {tipo === "tutor" && (
             <>
               <input
@@ -269,9 +275,9 @@ export default function Register() {
             <>
               <input
                 type="text"
-                name="cnpj"
-                placeholder="CNPJ (14 números)"
-                value={formData.cnpj}
+                name="nome_fantasia"
+                placeholder="Nome fantasia"
+                value={formData.nome_fantasia}
                 onChange={handleChange}
                 className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
                 required
@@ -283,25 +289,14 @@ export default function Register() {
                 value={formData.razao_social}
                 onChange={handleChange}
                 className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                required
               />
               <input
                 type="text"
-                name="telefone_principal"
-                placeholder="Telefone principal"
-                value={formData.telefone_principal}
+                name="cnpj"
+                placeholder="CNPJ"
+                value={formData.cnpj}
                 onChange={handleChange}
                 className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                required
-              />
-              <input
-                type="text"
-                name="telefone_emergencia"
-                placeholder="Telefone emergência"
-                value={formData.telefone_emergencia}
-                onChange={handleChange}
-                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                required
               />
               <input
                 type="text"
@@ -310,7 +305,30 @@ export default function Register() {
                 value={formData.endereco}
                 onChange={handleChange}
                 className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
-                required
+              />
+              <input
+                type="text"
+                name="telefone_principal"
+                placeholder="Telefone principal"
+                value={formData.telefone_principal}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+              />
+              <input
+                type="text"
+                name="telefone_emergencia"
+                placeholder="Telefone emergência"
+                value={formData.telefone_emergencia}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
+              />
+              <input
+                type="email"
+                name="email_contato"
+                placeholder="Email de contato"
+                value={formData.email_contato}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
               />
               <label className="flex items-center gap-2 text-[#004E64]">
                 <input
@@ -321,14 +339,14 @@ export default function Register() {
                 />
                 Disponível 24h
               </label>
-                            <label className="flex items-center gap-2 text-[#004E64]">
+              <label className="flex items-center gap-2 text-[#004E64]">
                 <input
                   type="checkbox"
                   name="publica"
                   checked={formData.publica}
                   onChange={handleChange}
                 />
-                Permitir que qualquer pessoa visualize a clinica no mapa
+                Permitir que qualquer pessoa visualize a clínica no mapa
               </label>
             </>
           )}
