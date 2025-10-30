@@ -11,41 +11,41 @@ import EmergenciasClinica from "./emergenciaClinica"; // Componente a ser render
 type ClinicaSection = "home" | "emergencias" | "veterinarios" | "configuracoes";
 
 export default function ClinicaDashboard({ user, onLogout }: any) {
-  const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState<ClinicaSection>("home");
+  const navigate = useNavigate();
+  const [activeSection, setActiveSection] = useState<ClinicaSection>("home");
 
-  const sidebar = (
-    <div className="flex flex-col gap-2"> {/* Reduz gap */}
-      <button
-        onClick={() => setActiveSection("home")}
-        className={`sidebar-button ${activeSection === "home" ? "sidebar-button-active" : "sidebar-button-inactive"}`}
-      >
-        <Home size={18} /> Início
-      </button>
+  const sidebar = (
+    <div className="flex flex-col gap-2"> {/* Reduz gap */}
+      <button
+        onClick={() => setActiveSection("home")}
+        className={`sidebar-button ${activeSection === "home" ? "sidebar-button-active" : "sidebar-button-inactive"}`}
+      >
+        <Home size={18} /> Início
+      </button>
 
-      <button
-        onClick={() => setActiveSection("emergencias")}
-        className={`sidebar-button ${activeSection === "emergencias" ? "sidebar-button-active" : "sidebar-button-inactive"}`}
-      >
-        <Activity size={18} /> Emergências
-      </button>
+      <button
+        onClick={() => setActiveSection("emergencias")}
+        className={`sidebar-button ${activeSection === "emergencias" ? "sidebar-button-active" : "sidebar-button-inactive"}`}
+      >
+        <Activity size={18} /> Emergências
+      </button>
 
       {/* Placeholder para futuras seções */}
-      <button
-        onClick={() => setActiveSection("veterinarios")}
+      <button
+        onClick={() => setActiveSection("veterinarios")}
         disabled // Desabilitado por enquanto
-        className={`sidebar-button ${activeSection === "veterinarios" ? "sidebar-button-active" : "sidebar-button-inactive"} disabled:opacity-50 disabled:cursor-not-allowed`}
-      >
-        <Users size={18} /> Veterinários (Em breve)
-      </button>
+        className={`sidebar-button ${activeSection === "veterinarios" ? "sidebar-button-active" : "sidebar-button-inactive"} disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        <Users size={18} /> Veterinários (Em breve)
+      </button>
 
-      <button
-        onClick={() => setActiveSection("configuracoes")}
+      <button
+        onClick={() => setActiveSection("configuracoes")}
         disabled // Desabilitado por enquanto
-        className={`sidebar-button ${activeSection === "configuracoes" ? "sidebar-button-active" : "sidebar-button-inactive"} disabled:opacity-50 disabled:cursor-not-allowed`}
-      >
-        <Settings size={18} /> Configurações (Em breve)
-      </button>
+        className={`sidebar-button ${activeSection === "configuracoes" ? "sidebar-button-active" : "sidebar-button-inactive"} disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        <Settings size={18} /> Configurações (Em breve)
+      </button>
 
       {/* Estilos Sidebar Buttons */}
       <style>{`
@@ -55,8 +55,8 @@ export default function ClinicaDashboard({ user, onLogout }: any) {
         .sidebar-button-inactive:hover:not(:disabled) { background-color: #F3F4F6; color: #1F2937; }
         .sidebar-button:disabled { color: #9CA3AF; }
       `}</style>
-    </div>
-  );
+    </div>
+  );
 
   // Transição comum para as seções
   const motionProps = {
@@ -66,9 +66,9 @@ export default function ClinicaDashboard({ user, onLogout }: any) {
     transition: { duration: 0.3 }
   };
 
-  return (
-    <DashboardLayout sidebar={sidebar}>
-      <div className="space-y-6"> {/* Espaçamento entre elementos */}
+  return (
+    <DashboardLayout sidebar={sidebar}>
+      <div className="space-y-6"> {/* Espaçamento entre elementos */}
         <AnimatePresence mode="wait"> {/* 'mode="wait"' garante transições mais suaves */}
           {activeSection === "home" && (
             <motion.div key="home-section" {...motionProps}>
@@ -111,7 +111,7 @@ export default function ClinicaDashboard({ user, onLogout }: any) {
            </button>
         </div>
 
-      </div>
-    </DashboardLayout>
-  );
+      </div>
+    </DashboardLayout>
+  );
 }

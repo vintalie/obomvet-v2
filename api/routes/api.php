@@ -13,7 +13,8 @@ use App\Http\Controllers\Api\{
     UsuarioController,
     VeterinarioController,
     IAController,
-    PushController
+    PushController,
+    WebRTCController
 };
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
@@ -39,6 +40,7 @@ Route::middleware('throttle:5,1')->group(function () {
 Route::get('/clinicas-publicas', [ClinicaController::class, 'indexPublic']);
 Route::post('/emergencias', [EmergenciaController::class, 'store']);
 Route::get('/emergencias', [EmergenciaController::class, 'store']);
+Route::post('/webrtc/signal', [WebRTCController::class, 'signal']);
 
 // ------------------------
 // ROTAS PROTEGIDAS (JWT)

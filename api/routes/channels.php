@@ -14,3 +14,7 @@ Broadcast::channel('veterinarios', function ($user) {
 Broadcast::channel('tutores', function ($user) {
     return $user->tipo === 'tutor';
 });
+
+Broadcast::channel('webrtc.{id}', function ($user, $id) {
+    return true;
+});

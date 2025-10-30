@@ -83,6 +83,7 @@ useEffect(() => {
 
     channel.listen(".NovaEmergencia", (event: any) => {
       console.log("🚨 Evento veterinário .NovaEmergencia recebido:", event);
+      
       sendNotificationToSW(event, "🚨 Nova Emergência Veterinário!");
     });
   }
