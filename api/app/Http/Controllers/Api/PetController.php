@@ -70,7 +70,7 @@ class PetController extends Controller
     {
         $data = $request->all();
         $data['tutor_id'] = $pet->tutor()->first()->id;
-        $data['veterinario_id'] = null;
+        $data['veterinario_id'] = $data['veterinario_id'] ?? null;
         
         $emergencia = $pet->emergencias()->create($data);
 

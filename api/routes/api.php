@@ -12,8 +12,8 @@ use App\Http\Controllers\Api\{
     TutorController,
     UsuarioController,
     VeterinarioController,
-    IAController
-    //PushController
+    IAController,
+    PushController
 };
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
@@ -45,6 +45,7 @@ Route::middleware('auth:api')->group(function () {
 
     // Emergências
     Route::post('/emergencias', [EmergenciaController::class, 'store']);
+    Route::get('/emergencias', [EmergenciaController::class, 'store']);
     Route::get('/clinica/emergencias', [EmergenciaController::class, 'porClinica']);
     
     // Usuários
@@ -114,6 +115,7 @@ Route::middleware('auth:api')->group(function () {
         $request->fulfill();
         return response()->json(['message' => 'E-mail verificado com sucesso!']);
     })->middleware(['auth:sanctum', 'signed'])->name('verification.verify');
+});
 
 // Rota para reenviar link
 Route::post('/email/resend', function (Request $request) {
