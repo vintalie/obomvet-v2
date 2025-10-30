@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('emergencias', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pet_id')->constrained()->onDelete('cascade');
-            $table->foreignId('tutor_id')->constrained()->onDelete('cascade');
+            $table->foreignId('pet_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('tutor_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('veterinario_id')->nullable()->constrained()->onDelete('set null');
             $table->text('descricao_sintomas');
             $table->enum('nivel_urgencia', ['baixa', 'media', 'alta', 'critica'])->default('media');

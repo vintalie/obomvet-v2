@@ -6,7 +6,7 @@ interface Emergencia {
   descricao_sintomas: string;
   nivel_urgencia: "baixa" | "media" | "alta" | "critica";
   pet?: { nome: string };
-  tutor?: { nome: string };
+  tutor?: { nome_completo: string };
   created_at?: string;
 }
 
@@ -115,7 +115,7 @@ export default function EmergenciasClinica() {
                     {emg.pet?.nome || "Pet não informado"}
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Tutor: {emg.tutor?.nome || "Desconhecido"}
+                    Tutor: {emg.tutor?.nome_completo || "Desconhecido"}
                   </p>
                 </div>
                 <span

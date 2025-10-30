@@ -18,7 +18,7 @@ class NovaEmergencia implements ShouldBroadcast
 
     public function __construct(Emergencia $emergencia)
     {
-         $this->emergencia = $emergencia->toArray();
+         $this->emergencia = $emergencia;
     }
 
     public function broadcastOn()
