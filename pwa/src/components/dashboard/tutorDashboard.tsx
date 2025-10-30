@@ -1,73 +1,151 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import { Home, Dog, AlertTriangle, History } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import PetDashboard from "./petDashboard";
 import DashboardLayout from "./layout/DashboardLayout";
+import HistoricoDashboard from "./historicoDashboard";
+import EmergencyDashboardPage from "./emergenciaDashboard";
 
 export default function TutorDashboard({ user, onLogout }: any) {
   const navigate = useNavigate();
-  const [showPets, setShowPets] = useState(false);
+  const [activeSection, setActiveSection] = useState<"home" | "pets" | "emergencias" | "historico">("home");
+  const [tooltip, setTooltip] = useState<{ text: string; visible: boolean; y: number }>({
+    text: "",
+    visible: false,
+    y: 0,
+  });
+
+  const handleTooltip = (text: string, visible: boolean, y = 0) => {
+    setTooltip({ text, visible, y });
+  };
 
   const sidebar = (
-    <>
-      <Link to="#" className="flex items-center gap-2 bg-gray-100 rounded-md px-3 py-2">
+    <div className="flex flex-col gap-3 p-4 bg-white shadow rounded-xl relative">
+      <button
+        onClick={() => setActiveSection("home")}
+        onMouseEnter={(e) => handleTooltip("Página inicial do seu dashboard", true, e.currentTarget.offsetTop)}
+        onMouseLeave={() => handleTooltip("", false)}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left font-medium transition ${
+          activeSection === "home" ? "bg-blue-100 text-blue-700" : "hover:bg-blue-50 text-gray-700"
+        }`}
+      >
         <Home size={18} /> Início
-      </Link>
+      </button>
 
       <button
-        onClick={() => setShowPets((v) => !v)}
-        className="flex items-center gap-2 hover:bg-gray-100 rounded-md px-3 py-2 w-full text-left"
+        onClick={() => setActiveSection("pets")}
+        onMouseEnter={(e) =>
+          handleTooltip("Gerencie seus pets: cadastrar, editar e excluir", true, e.currentTarget.offsetTop)
+        }
+        onMouseLeave={() => handleTooltip("", false)}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left font-medium transition ${
+          activeSection === "pets" ? "bg-blue-100 text-blue-700" : "hover:bg-blue-50 text-gray-700"
+        }`}
       >
         <Dog size={18} /> Meus Pets
       </button>
 
-      <Link to="/novaEmergencia" className="flex items-center gap-2 hover:bg-gray-100 rounded-md px-3 py-2">
-        <AlertTriangle size={18} /> Registrar Emergência
-      </Link>
+      <button
+        onClick={() => setActiveSection("emergencias")}
+        onMouseEnter={(e) => handleTooltip("Gerenciar emergências dos seus pets", true, e.currentTarget.offsetTop)}
+        onMouseLeave={() => handleTooltip("", false)}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left font-medium transition ${
+          activeSection === "emergencias" ? "bg-blue-100 text-blue-700" : "hover:bg-blue-50 text-gray-700"
+        }`}
+      >
+        <AlertTriangle size={18} /> Emergências
+      </button>
 
-      <Link to="/historicoEmergencias" className="flex items-center gap-2 hover:bg-gray-100 rounded-md px-3 py-2">
+      <button
+        onClick={() => setActiveSection("historico")}
+        onMouseEnter={(e) => handleTooltip("Acompanhe o histórico de atendimentos e ações veterinárias", true, e.currentTarget.offsetTop)}
+        onMouseLeave={() => handleTooltip("", false)}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left font-medium transition ${
+          activeSection === "historico" ? "bg-blue-100 text-blue-700" : "hover:bg-blue-50 text-gray-700"
+        }`}
+      >
         <History size={18} /> Histórico
-      </Link>
-    </>
+      </button>
+    </div>
   );
 
   return (
     <DashboardLayout sidebar={sidebar}>
-      <div className="max-w-2xl mx-auto space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800">Bem-vindo, {user?.name} 🐾</h2>
-        <p className="text-gray-500">O que você deseja fazer hoje?</p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <button
-            onClick={() => setShowPets((v) => !v)}
-            className="bg-white shadow rounded-xl p-4 hover:bg-gray-50 border"
+      {/* Tooltip animado */}
+      <AnimatePresence>
+        {tooltip.visible && (
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.2 }}
+            style={{ top: tooltip.y, left: 220 }}
+            className="absolute bg-gray-800 text-white text-sm rounded-md px-3 py-2 shadow-lg z-50 max-w-xs"
           >
-            <Dog className="mx-auto mb-2" size={28} />
-            <span>{showPets ? "Fechar Pets" : "Cadastrar Pets"}</span>
-          </button>
-
-          <button
-            onClick={() => navigate("/novaEmergencia")}
-            className="bg-white shadow rounded-xl p-4 hover:bg-gray-50 border"
-          >
-            <AlertTriangle className="mx-auto mb-2 text-red-500" size={28} />
-            <span>Registrar Emergência</span>
-          </button>
-
-          <button
-            onClick={() => navigate("/historicoEmergencias")}
-            className="bg-white shadow rounded-xl p-4 hover:bg-gray-50 border"
-          >
-            <History className="mx-auto mb-2 text-blue-500" size={28} />
-            <span>Ver Histórico</span>
-          </button>
-        </div>
-
-        {showPets && (
-          <div className="mt-8 border-t pt-6">
-            <PetDashboard currentUser={user} />
-          </div>
+            {tooltip.text}
+          </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Conteúdo principal */}
+      <div className="max-w-4xl mx-auto space-y-6">
+        {activeSection === "home" && (
+          <>
+            <h2 className="text-2xl font-bold text-gray-800">Bem-vindo, {user?.name} 🐾</h2>
+            <p className="text-gray-500">
+              Use a barra lateral à esquerda para navegar entre seus pets, registrar emergências e acessar o histórico de atendimentos.
+            </p>
+          </>
+        )}
+
+        {/* Pets */}
+        <AnimatePresence>
+          {activeSection === "pets" && (
+            <motion.div
+              key="pet-dashboard"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="mt-6 border-t pt-6"
+            >
+              <PetDashboard currentUser={user} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Emergências */}
+        <AnimatePresence>
+          {activeSection === "emergencias" && (
+            <motion.div
+              key="emergency-dashboard"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="mt-6 border-t pt-6"
+            >
+              <EmergencyDashboardPage />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Histórico */}
+        <AnimatePresence>
+          {activeSection === "historico" && (
+            <motion.div
+              key="historico-dashboard"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="mt-6 border-t pt-6"
+            >
+              <HistoricoDashboard />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <button onClick={onLogout} className="mt-6 text-sm text-red-500 underline">
           Sair

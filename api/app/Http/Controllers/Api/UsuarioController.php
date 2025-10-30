@@ -25,39 +25,40 @@ class UsuarioController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
+            'nome_completo' => 'required|string',
             'email' => 'required|email|unique:usuarios,email',
             'password' => 'required|string|min:6',
-            'tipo' => 'nullable|string'
+            'tipo' => 'required|string|in:tutor,veterinario,clinica',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
 
         $usuario = Usuario::create($validated);
 
-        // Se o tipo foi informado, crie o modelo associado (tutor/veterinario/clinica) se ainda não existir
-        $associated = $this->ensureAssociatedModel($usuario);
+        // Cria modelo associado com dados obrigatórios
+        $this->ensureAssociatedModel($usuario, $request);
 
-        $payload = $usuario->toArray();
-        $payload = array_merge($payload, $this->attachedIds($usuario));
-
-        return response()->json($payload, 201);
+        return response()->json(array_merge(
+            $usuario->toArray(),
+            $this->attachedIds($usuario)
+        ), 201);
     }
 
     public function show(Usuario $usuario)
     {
-        $payload = $usuario->toArray();
-        $payload = array_merge($payload, $this->attachedIds($usuario));
-        return $payload;
+        return array_merge(
+            $usuario->toArray(),
+            $this->attachedIds($usuario)
+        );
     }
 
     public function update(Request $request, Usuario $usuario)
     {
         $validated = $request->validate([
-            'name' => 'sometimes|string',
+            'nome_completo' => 'required|string',
             'email' => 'sometimes|email|unique:usuarios,email,' . $usuario->id,
             'password' => 'sometimes|string|min:6',
-            'tipo' => 'sometimes|string'
+            'tipo' => 'sometimes|string|in:tutor,veterinario,clinica'
         ]);
 
         if (isset($validated['password'])) {
@@ -66,13 +67,12 @@ class UsuarioController extends Controller
 
         $usuario->update($validated);
 
-        // Se o tipo foi alterado/definido, garanta que o modelo associado exista
-        $associated = $this->ensureAssociatedModel($usuario);
+        $this->ensureAssociatedModel($usuario, $request);
 
-        $payload = $usuario->toArray();
-        $payload = array_merge($payload, $this->attachedIds($usuario));
-
-        return $payload;
+        return array_merge(
+            $usuario->toArray(),
+            $this->attachedIds($usuario)
+        );
     }
 
     public function destroy(Usuario $usuario)
@@ -81,82 +81,59 @@ class UsuarioController extends Controller
         return response()->noContent();
     }
 
-    /**
-     * Retorna o id/type do modelo associado (tutor, veterinario ou clinica) se existir
-     */
-    protected function getAssociated(Usuario $usuario)
-    {
-        if ($usuario->isTutor() && $usuario->tutor) {
-            return ['type' => 'tutor', 'id' => $usuario->tutor->id];
-        }
-
-        if ($usuario->isVeterinario() && $usuario->veterinario) {
-            return ['type' => 'veterinario', 'id' => $usuario->veterinario->id];
-        }
-
-        if ($usuario->isClinica() && $usuario->clinica) {
-            return ['type' => 'clinica', 'id' => $usuario->clinica->id];
-        }
-
-        return null;
-    }
-
-    /**
-     * Retorna um array com as chaves clinica_id, veterinario_id e tutor_id (valores ou null)
-     */
     protected function attachedIds(Usuario $usuario)
     {
-        $out = [];
-
-        if ($usuario->clinica && $usuario->clinica->id) {
-            $out['clinica_id'] = $usuario->clinica->id;
-        }
-
-        if ($usuario->veterinario && $usuario->veterinario->id) {
-            $out['veterinario_id'] = $usuario->veterinario->id;
-        }
-
-        if ($usuario->tutor && $usuario->tutor->id) {
-            $out['tutor_id'] = $usuario->tutor->id;
-        }
-
-        return $out;
+        return [
+            'tutor_id' => $usuario->tutor->id ?? null,
+            'veterinario_id' => $usuario->veterinario->id ?? null,
+            'clinica_id' => $usuario->clinica->id ?? null,
+        ];
     }
 
     /**
-     * Garante que o modelo associado exista para o usuário (cria se necessário) e retorna os dados
+     * Cria o modelo associado com dados obrigatórios se não existir
      */
-    protected function ensureAssociatedModel(Usuario $usuario)
+    protected function ensureAssociatedModel(Usuario $usuario, Request $request)
     {
-        // Se não houver tipo definido, nada a fazer
-        if (empty($usuario->tipo)) {
-            return null;
-        }
-
         if ($usuario->isTutor()) {
             if (! $usuario->tutor) {
-                $tutor = $usuario->tutor()->create([]);
-                return ['type' => 'tutor', 'id' => $tutor->id];
+                $usuario->tutor()->create([
+                    'nome_completo' => $request->input('nome_completo', ''),
+                    'telefone_principal' => $request->input('telefone_principal', ''),
+                    'telefone_alternativo' => $request->input('telefone_alternativo', null),
+                    'cpf' => $request->input('cpf', ''),
+                ]);
             }
-            return ['type' => 'tutor', 'id' => $usuario->tutor->id];
         }
 
         if ($usuario->isVeterinario()) {
             if (! $usuario->veterinario) {
-                $vet = $usuario->veterinario()->create([]);
-                return ['type' => 'veterinario', 'id' => $vet->id];
+                $usuario->veterinario()->create([
+                    'nome_completo' => $request->input('nome_completo', ''),
+                    'crmv' => $request->input('crmv', ''),
+                    'localizacao' => $request->input('localizacao', ''),
+                    'especialidade' => $request->input('especialidade', ''),
+                    'telefone_emergencia' => $request->input('telefone_emergencia', ''),
+                    'disponivel_24h' => $request->input('disponivel_24h', false),
+                ]);
             }
-            return ['type' => 'veterinario', 'id' => $usuario->veterinario->id];
         }
 
         if ($usuario->isClinica()) {
             if (! $usuario->clinica) {
-                $clinica = $usuario->clinica()->create([]);
-                return ['type' => 'clinica', 'id' => $clinica->id];
+                $usuario->clinica()->create([
+                    'cnpj' => $request->input('cnpj', ''),
+                    'nome_fantasia' => $request->input('nome_fantasia', ''),
+                    'razao_social' => $request->input('razao_social', ''),
+                    'endereco' => $request->input('endereco', ''),
+                    'telefone_principal' => $request->input('telefone_principal', ''),
+                    'telefone_emergencia' => $request->input('telefone_emergencia', ''),
+                    'email_contato' => $request->input('email_contato', $usuario->email),
+                    'horario_funcionamento' => $request->input('horario_funcionamento', '08:00-18:00'),
+                    'disponivel_24h' => $request->input('disponivel_24h', false),
+                    'localizacao' => $request->input('localizacao', ''),
+                ]);
             }
-            return ['type' => 'clinica', 'id' => $usuario->clinica->id];
         }
-
-        return null;
     }
 }

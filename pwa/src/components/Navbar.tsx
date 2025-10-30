@@ -1,10 +1,21 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Menu, X, PawPrint, User } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Menu, X, PawPrint, User, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Simulação de autenticação (substitua pelo seu contexto ou estado real)
+  const [user, setUser] = useState<{ name: string } | null>({
+    name: "Miguel",
+  });
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    setUser(null); // desloga o usuário
+    navigate("/login"); // redireciona para login
+  };
 
   const menuVariants = {
     hidden: { opacity: 0, y: -20 },
@@ -47,12 +58,21 @@ export default function Navbar() {
           </Link>
         ))}
 
-        <Link
-          to="/login"
-          className="bg-[#25A18E] w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-[#208B7C] transition-colors"
-        >
-          <User size={24} />
-        </Link>
+        {user ? (
+          <button
+            onClick={handleLogout}
+            className="bg-[#25A18E] w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-[#208B7C] transition-colors"
+          >
+            <LogOut size={24} />
+          </button>
+        ) : (
+          <Link
+            to="/login"
+            className="bg-[#25A18E] w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-[#208B7C] transition-colors"
+          >
+            <User size={24} />
+          </Link>
+        )}
       </div>
 
       {/* Botão Menu Mobile */}
@@ -92,21 +112,41 @@ export default function Navbar() {
               </motion.div>
             ))}
 
-            <motion.div
-              variants={itemVariants}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              custom={3}
-            >
-              <Link
-                to="/login"
-                onClick={() => setMenuOpen(false)}
-                className="bg-[#25A18E] w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-[#208B7C] transition-colors"
+            {user ? (
+              <motion.div
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                custom={3}
               >
-                <User size={24} />
-              </Link>
-            </motion.div>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMenuOpen(false);
+                  }}
+                  className="bg-[#25A18E] w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-[#208B7C] transition-colors"
+                >
+                  <LogOut size={24} />
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                custom={3}
+              >
+                <Link
+                  to="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="bg-[#25A18E] w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-[#208B7C] transition-colors"
+                >
+                  <User size={24} />
+                </Link>
+              </motion.div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -21,7 +21,22 @@ class PetController extends Controller
 
     public function store(Request $request)
     {
-        return Pet::create($request->all());
+        // ✅ Validação mínima para evitar erro 500
+        $validated = $request->validate([
+            'nome' => 'required|string|max:100',
+            'especie' => 'required|string|max:100',
+            'raca' => 'nullable|string|max:100',
+            'data_nascimento' => 'nullable|date',
+            'peso' => 'nullable|numeric|min:0',
+            'alergias' => 'nullable|string',
+            'medicamentos_continuos' => 'nullable|string',
+            'cuidados_especiais' => 'nullable|string',
+            'tutor_id' => 'required|exists:usuarios,id',
+        ]);
+
+        // ✅ Criação segura
+        $pet = Pet::create($validated);
+        return response()->json($pet, 201);
     }
 
     public function show(Pet $pet)
@@ -43,7 +58,7 @@ class PetController extends Controller
 
     public function getTutors(Pet $pet)
     {
-        return $pet->tutors()->get();
+        return $pet->tutor()->get();
     }
 
     public function getEmergencias(Pet $pet)
@@ -55,7 +70,7 @@ class PetController extends Controller
     {
         $data = $request->all();
         $data['tutor_id'] = $pet->tutor()->first()->id;
-        $data['veterinario_id'] = null;
+        $data['veterinario_id'] = $data['veterinario_id'] ?? null;
         
         $emergencia = $pet->emergencias()->create($data);
 

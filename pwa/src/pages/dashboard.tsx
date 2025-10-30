@@ -4,6 +4,7 @@ import { getToken, clearTokenFallback, getUser } from "../utils/auth";
 import TutorDashboard from "../components/dashboard/tutorDashboard";
 import VeterinarioDashboard from "../components/dashboard/veterinarioDashboard";
 import ClinicaDashboard from "../components/dashboard/clinicaDashboard";
+import PetDashboard from "../components/dashboard/petDashboard";
 import { echo } from "../services/echo";
 
 interface User {
@@ -18,6 +19,8 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<"home" | "pets" | "reports">("home");
+
   const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
   // === Carregar usuário autenticado ===
@@ -39,9 +42,7 @@ export default function Dashboard() {
         const res = await fetch(`${API_URL}/api/usuarios/${currentUser.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         if (!res.ok) throw new Error("Erro ao buscar dados do usuário.");
-
         const data = await res.json();
         setUser(data);
       } catch (err: any) {
@@ -117,13 +118,26 @@ useEffect(() => {
   if (error) return <p className="p-6 text-center text-red-500">{error}</p>;
   if (!user) return null;
 
+  // ---------- RENDER POR TIPO ----------
   switch (user.tipo) {
     case "tutor":
-      return <TutorDashboard user={user} onLogout={handleLogout} />;
+      return (
+        <TutorDashboard
+          user={user}
+          onLogout={handleLogout}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab)}
+        >
+          {activeTab === "pets" && <PetDashboard currentUser={user} />}
+        </TutorDashboard>
+      );
+
     case "veterinario":
       return <VeterinarioDashboard user={user} onLogout={handleLogout} />;
+
     case "clinica":
       return <ClinicaDashboard user={user} onLogout={handleLogout} />;
+
     default:
       return <p>Tipo de usuário inválido.</p>;
   }
