@@ -1,23 +1,28 @@
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
-import { getTokenFallback } from "../utils/auth"; // função que retorna o token salvo no login
+import { getToken } from "../utils/auth";
 
-Pusher.logToConsole = false;
+Pusher.logToConsole = true;
+(window as any).Pusher = Pusher;
 
-const token = getTokenFallback(); // busca o access_token salvo após o login
+const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+const token = getToken();
 
-const echo = new Echo({
+export const echo = new Echo({
   broadcaster: "pusher",
   key: import.meta.env.VITE_PUSHER_APP_KEY,
   cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
   forceTLS: true,
-  authEndpoint: "http://localhost:8000/broadcasting/auth",
+  authEndpoint: `${API_URL}/broadcasting/auth`,
   auth: {
     headers: {
-      Authorization: `Bearer ${token}`, // 🔥 envia o token do login
+      Authorization: `Bearer ${token}`,
       Accept: "application/json",
     },
   },
 });
 
-export default echo;
+// Debug global
+echo.connector.pusher.connection.bind("connected", () => console.log("✅ Pusher conectado"));
+echo.connector.pusher.connection.bind("disconnected", () => console.log("⚠️ Pusher desconectado"));
+echo.connector.pusher.connection.bind("error", (err: any) => console.error("❌ Erro no Pusher:", err));

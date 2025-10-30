@@ -12,7 +12,7 @@ export default function VeterinarioDashboard({ user, onLogout }: any) {
     const token = getToken();
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/emergencias`, {
+        const res = await fetch(`${API_URL}/api/veterinarios/${user.veterinario_id}/emergencias`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

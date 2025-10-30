@@ -50,11 +50,7 @@ class VeterinarioController extends Controller
         return $veterinario->historicoAtendimentos()->get();
     }
 
-    public function storeEmergencia(Request $request, Veterinario $veterinario)
-    {
-        $emergencia = $veterinario->emergencias()->create($request->all());
-        return response()->json($emergencia, 201);
-    }
+
 
     public function storeHistorico(Request $request, Veterinario $veterinario)
     {

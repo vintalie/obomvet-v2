@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\Controller;
-use Orion\Concerns\DisableAuthorization;
+use Illuminate\Support\Facades\Http;
 
 class IAController extends Controller
 {

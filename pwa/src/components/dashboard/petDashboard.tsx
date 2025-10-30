@@ -22,6 +22,9 @@ interface Pet {
 interface User {
   id: number;
   tipo: "tutor" | "veterinario";
+  tutor_id?: number;
+  clinica_id?: number;
+  veterinario_id?: number;
 }
 
 interface Props {

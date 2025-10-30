@@ -12,7 +12,8 @@ use App\Http\Controllers\Api\{
     TutorController,
     UsuarioController,
     VeterinarioController,
-    IAController
+    IAController,
+    PushController
 };
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
@@ -36,6 +37,8 @@ Route::middleware('throttle:5,1')->group(function () {
 
 
 Route::get('/clinicas-publicas', [ClinicaController::class, 'indexPublic']);
+Route::post('/emergencias', [EmergenciaController::class, 'store']);
+Route::get('/emergencias', [EmergenciaController::class, 'store']);
 
 // ------------------------
 // ROTAS PROTEGIDAS (JWT)
@@ -43,7 +46,6 @@ Route::get('/clinicas-publicas', [ClinicaController::class, 'indexPublic']);
 Route::middleware('auth:api')->group(function () {
 
     // Emergências
-    Route::post('/emergencias', [EmergenciaController::class, 'store']);
     Route::get('/clinica/emergencias', [EmergenciaController::class, 'porClinica']);
     
     // Usuários
@@ -113,9 +115,15 @@ Route::middleware('auth:api')->group(function () {
         $request->fulfill();
         return response()->json(['message' => 'E-mail verificado com sucesso!']);
     })->middleware(['auth:sanctum', 'signed'])->name('verification.verify');
-
-    Route::post('/email/resend', function (Request $request) {
-        $request->user()->sendEmailVerificationNotification();
-        return response()->json(['message' => 'Link de verificação reenviado!']);
-    })->middleware(['auth:sanctum'])->name('verification.send');
 });
+
+// Rota para reenviar link
+Route::post('/email/resend', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return response()->json(['message' => 'Link de verificação reenviado!']);
+})->middleware(['auth:sanctum'])->name('verification.send');
+
+
+// routes/api.php
+Route::post('/save-subscription', [PushController::class, 'store']);
+Route::post('/send-push', [PushController::class, 'send']);

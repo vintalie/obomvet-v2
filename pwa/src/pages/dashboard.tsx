@@ -5,8 +5,7 @@ import TutorDashboard from "../components/dashboard/tutorDashboard";
 import VeterinarioDashboard from "../components/dashboard/veterinarioDashboard";
 import ClinicaDashboard from "../components/dashboard/clinicaDashboard";
 import PetDashboard from "../components/dashboard/petDashboard";
-import Echo from "laravel-echo";
-import Pusher from "pusher-js";
+import { echo } from "../services/echo";
 
 interface User {
   id: number;
@@ -24,7 +23,7 @@ export default function Dashboard() {
 
   const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
-  // ---------- BUSCA DADOS DO USUÁRIO ----------
+  // === Carregar usuário autenticado ===
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -54,54 +53,67 @@ export default function Dashboard() {
     })();
   }, [navigate, API_URL]);
 
-  // ---------- CONEXÃO PUSHER / ECHO ----------
-  useEffect(() => {
-    if (!user) return;
-    const token = getToken();
-    if (!token) return;
+  // === Echo / Pusher / Notificações ===
+useEffect(() => {
+  if (!user) return;
 
-    let echo: Echo | null = null;
+  let channel: any;
 
-    try {
-      window.Pusher = Pusher;
-
-      echo = new Echo({
-        broadcaster: "pusher",
-        key: import.meta.env.VITE_PUSHER_APP_KEY,
-        cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-        forceTLS: true,
-        authEndpoint: `${API_URL}/broadcasting/auth`,
-        auth: {
-          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-        },
+  const sendNotificationToSW = (event: any, titlePrefix = "🚨 Nova Emergência!") => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification(titlePrefix, {
+          body: "Emergência registrada",
+          icon: "/icons/icon-192x192.png",
+          badge: "/icons/icon-72x72.png",
+          data: { url: `/emergencias/${event.id}` },
+          vibrate: [200, 100, 200],
+          requireInteraction: true,
+        });
       });
-
-      if (user.tipo === "veterinario") {
-        echo.private("veterinarios").listen("NovaEmergenciaCriada", (data: any) => {
-          alert(`🚨 Nova emergência registrada: ${data.emergencia.titulo}`);
-        });
-      }
-
-      if (user.tipo === "clinica") {
-        echo.private("clinicas").listen("NovaEmergenciaCriada", (data: any) => {
-          alert(`🚨 Nova emergência próxima: ${data.emergencia.titulo}`);
-        });
-      }
-    } catch (e) {
-      console.error("Erro ao inicializar Pusher/Echo:", e);
+    } else {
+      alert("Nova emergência!");
     }
+  };
 
-    return () => {
-      if (echo) echo.disconnect();
-    };
-  }, [user, API_URL]);
+  if (user.tipo === "veterinario") {
+    channel = echo.private("veterinarios");
 
+    channel.subscribed(() => console.log("✅ Subscrito ao canal privado veterinarios"));
+
+    channel.listen(".NovaEmergencia", (event: any) => {
+      console.log("🚨 Evento veterinário .NovaEmergencia recebido:", event);
+      sendNotificationToSW(event, "🚨 Nova Emergência Veterinário!");
+    });
+  }
+
+  if (user.tipo === "clinica") {
+    channel = echo.private("clinicas");
+
+    channel.subscribed(() => console.log("✅ Subscrito ao canal privado clinicas"));
+
+    channel.listen(".NovaEmergencia", (event: any) => {
+      console.log("🚨 Evento clínica .NovaEmergencia recebido:", event);
+      sendNotificationToSW(event, "🚨 Nova Emergência Próxima!");
+    });
+  }
+
+  // ❌ Remover unsubscribe automático
+  // return () => {
+  //   if (channel) channel.unsubscribe();
+  // };
+
+}, [user]);
+
+
+  // === Logout ===
   function handleLogout() {
     clearTokenFallback();
     setUser(null);
     navigate("/");
   }
 
+  // === Render ===
   if (loading) return <p className="p-6 text-center">Carregando...</p>;
   if (error) return <p className="p-6 text-center text-red-500">{error}</p>;
   if (!user) return null;

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Emergencia;
 use App\Models\Clinica;
+use App\Events\NovaEmergencia;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
@@ -11,7 +12,26 @@ class EmergenciaController extends Controller
 {
     public function __construct()
     {
-        $this->authorizeResource(Emergencia::class, 'emergencia');
+        // $this->authorizeResource(Emergencia::class, 'emergencia');
+    }
+
+    /**
+     * Função privada para calcular a distância Haversine em km.
+     */
+    private function haversineDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371; // km
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($dLon / 2) * sin($dLon / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
     }
 
     /**
@@ -43,19 +63,29 @@ class EmergenciaController extends Controller
         $user = $request->user();
 
         if (!$user || !$user->tutor) {
-            return response()->json(['error' => 'Usuário tutor não autenticado'], 401);
+            $validated = $request->validate([
+                'descricao_sintomas' => 'required|string',
+                'nivel_urgencia' => 'required|in:baixa,media,alta,critica',
+                'pet_id' => 'nullable|exists:pets,id',
+                'location' => 'nullable|array',
+                'location.latitude' => 'required_with:location|numeric',
+                'location.longitude' => 'required_with:location|numeric',
+            ]);
+            // return response()->json(['error' => 'Usuário tutor não autenticado'], 401);
+        }else{
+            $validated = $request->validate([
+                'descricao_sintomas' => 'required|string',
+                'nivel_urgencia' => 'required|in:baixa,media,alta,critica',
+                'pet_id' => 'required|exists:pets,id',
+                'tutor_id' => 'nullable|exists:tutors,id',
+                'location' => 'nullable|array',
+                'location.latitude' => 'required_with:location|numeric',
+                'location.longitude' => 'required_with:location|numeric',
+            ]);
+            $validated['tutor_id'] = $user->tutor->id;
         }
 
-        $validated = $request->validate([
-            'descricao_sintomas' => 'required|string',
-            'nivel_urgencia' => 'required|in:baixa,media,alta,critica',
-            'pet_id' => 'required|exists:pets,id',
-            'location' => 'nullable|array',
-            'location.latitude' => 'required_with:location|numeric',
-            'location.longitude' => 'required_with:location|numeric',
-        ]);
 
-        $validated['tutor_id'] = $user->tutor->id;
 
         $userLocation = $request->input('location');
         $clinicaAlvo = null;
@@ -106,7 +136,7 @@ class EmergenciaController extends Controller
         unset($validated['location']);
 
         $emergencia = Emergencia::create($validated);
-
+        NovaEmergencia::dispatch($emergencia);
         return response()->json([
             'emergencia' => $emergencia,
             'clinica' => $clinicaAlvo

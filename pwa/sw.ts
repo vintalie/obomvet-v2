@@ -1,16 +1,25 @@
-self.addEventListener('push', function (event) {
+/// <reference lib="webworker" />
+
+
+self.addEventListener("push", function (event) {
   const data = event.data.json();
   const options = {
-    body: data.body,
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    data: data.data
+    body: data.body || "Nova notificação",
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-72x72.png",
+    data: data.data || {},
+    vibrate: [200, 100, 200],
+    requireInteraction: true,
   };
-  event.waitUntil(self.registration.showNotification(data.title, options));
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Notificação", options)
+  );
 });
 
-self.addEventListener('notificationclick', function (event) {
+// Clicar na notificação abre a URL
+self.addEventListener("notificationclick", function (event) {
   event.notification.close();
-  const url = '/emergencias/' + event.notification.data.emergencia_id;
-  event.waitUntil(clients.openWindow(url));
+  event.waitUntil(clients.openWindow(event.notification.data.url || "/"));
 });
+

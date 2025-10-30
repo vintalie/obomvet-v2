@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Pet;
+use App\Events\NovaEmergencia;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
@@ -67,7 +68,14 @@ class PetController extends Controller
 
     public function storeEmergencia(Request $request, Pet $pet)
     {
-        $emergencia = $pet->emergencias()->create($request->all());
+        $data = $request->all();
+        $data['tutor_id'] = $pet->tutor()->first()->id;
+        $data['veterinario_id'] = $data['veterinario_id'] ?? null;
+        
+        $emergencia = $pet->emergencias()->create($data);
+
+        NovaEmergencia::dispatch($emergencia);
+        
         return response()->json($emergencia, 201);
     }
 
