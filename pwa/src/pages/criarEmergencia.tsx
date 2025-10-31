@@ -8,12 +8,12 @@ import {
   Loader2,
   AlertTriangle,
   CheckCircle2,
-  MapPin, // Ícone para o botão de rota
-  Home,   // Ícone para Domicílio
-  Building, // Ícone para Clínica
+  MapPin,
+  Home,  
+  Building,
 } from "lucide-react";
 
-// --- INTERFACES ---
+// --- INTERFACES --
 
 interface Location {
   latitude: number;

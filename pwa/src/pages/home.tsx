@@ -12,31 +12,41 @@ export default function Home() {
   return (
     <div
       className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300
-        ${darkMode ? "bg-gray-900 text-white" : "bg-gradient-to-br from-[#004E64] to-[#25A18E] text-[#004E64]"}`}
+       ${
+         darkMode
+           ? "bg-gray-900 text-white"
+           : "bg-gradient-to-br from-[#004E64] to-[#25A18E] text-[#004E64]"
+       }`}
     >
       <Navbar />
 
-      <main className="flex-1 flex flex-col md:flex-row items-center justify-center pt-32 pb-16 px-8 gap-12">
+      <main className="flex-1 flex flex-col md:flex-row items-center justify-center pt-24 md:pt-32 pb-12 md:pb-16 px-4 sm:px-8 gap-8 md:gap-12">
         {/* Card principal */}
         <motion.div
-          className="flex justify-center items-start mt-10 px-4 w-full"
+          // Removido mt-10, o gap do <main> agora controla o espaço
+          className="flex justify-center items-start px-4 w-full"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
           <div
-            className={`relative rounded-2xl border p-10 max-w-3xl w-full
+            // Padding responsivo: p-6 em telas pequenas, sm:p-10 em maiores
+            className={`relative rounded-2xl border p-6 sm:p-10 max-w-3xl w-full
               shadow-[0_10px_40px_rgba(0,0,0,0.08)]
               before:absolute before:-z-10 before:inset-0 before:translate-x-2 before:translate-y-2
               before:rounded-2xl before:opacity-40 before:blur-sm
               hover:before:translate-x-3 hover:before:translate-y-3 transition-all duration-300
-              ${darkMode
-                ? "bg-gray-800 border-gray-700 before:bg-gray-700"
-                : "bg-white border-[#25A18E] before:bg-[#25A18E]"
+              ${
+                darkMode
+                  ? "bg-gray-800 border-gray-700 before:bg-gray-700"
+                  : "bg-white border-[#25A18E] before:bg-[#25A18E]"
               }`}
           >
             <motion.h1
-              className={`text-5xl font-extrabold mb-4 leading-tight drop-shadow-sm ${darkMode ? "text-white" : "text-[#004E64]"}`}
+              // Fonte responsiva: text-4xl (mobile) e md:text-5xl (desktop)
+              className={`text-4xl md:text-5xl font-extrabold mb-4 leading-tight drop-shadow-sm ${
+                darkMode ? "text-white" : "text-[#004E64]"
+              }`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
@@ -45,7 +55,10 @@ export default function Home() {
             </motion.h1>
 
             <motion.p
-              className={`mb-4 text-2xl font-semibold ${darkMode ? "text-gray-200" : "text-[#004E64]"}`}
+              // Fonte responsiva: text-xl (mobile) e md:text-2xl (desktop)
+              className={`mb-4 text-xl md:text-2xl font-semibold ${
+                darkMode ? "text-gray-200" : "text-[#004E64]"
+              }`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -54,18 +67,22 @@ export default function Home() {
             </motion.p>
 
             <motion.p
-              className={`mb-8 text-lg max-w-xl ${darkMode ? "text-gray-300" : "text-slate-700"}`}
+              // Fonte responsiva: text-base (mobile) e sm:text-lg (telas maiores)
+              className={`mb-8 text-base sm:text-lg max-w-xl ${
+                darkMode ? "text-gray-300" : "text-slate-700"
+              }`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              O <strong>oBomVet</strong> ajuda a reduzir o tempo de resposta em situações de
-              emergência animal, conectando automaticamente tutores a clínicas
-              veterinárias próximas via geolocalização.
+              O <strong>oBomVet</strong> ajuda a reduzir o tempo de resposta em
+              situações de emergência animal, conectando automaticamente tutores
+              a clínicas veterinárias próximas via geolocalização.
             </motion.p>
 
             {/* Botões padrão */}
-            <div className="flex flex-wrap items-center gap-4 mt-6">
+            {/* Layout responsivo: flex-col (mobile) e sm:flex-row (maiores) */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mt-6">
               {[
                 {
                   label: "Entrar",
@@ -87,10 +104,13 @@ export default function Home() {
                   transition={{ delay: 0.5 + idx * 0.1 }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  // Garante que o div se estique no layout flex-col
+                  className="w-full sm:w-auto"
                 >
                   <Link
                     to={btn.to}
-                    className={`px-8 py-3 rounded-xl text-white font-semibold shadow-md hover:shadow-lg transition ${btn.bg} ${btn.hover}`}
+                    // Botões com largura total no mobile e centralizados
+                    className={`block w-full sm:w-auto text-center px-8 py-3 rounded-xl text-white font-semibold shadow-md hover:shadow-lg transition ${btn.bg} ${btn.hover}`}
                   >
                     {btn.label}
                   </Link>
@@ -100,7 +120,7 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* Ilustração */}
+        {/* Ilustração (Lógica mantida: hidden md:block) */}
         <motion.div
           className="flex-1 flex items-center justify-center"
           initial={{ opacity: 0, x: 20 }}
@@ -116,7 +136,7 @@ export default function Home() {
         </motion.div>
       </main>
 
-      {/* Botão de EMERGÊNCIA flutuante — versão desktop */}
+      {/* Botão de EMERGÊNCIA flutuante — versão desktop (Lógica mantida) */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -152,13 +172,12 @@ export default function Home() {
         </Link>
       </motion.div>
 
-      {/* Botão estilo “fitinha” — versão mobile */}
+      {/* Botão estilo “fitinha” — versão mobile (Lógica mantida) */}
       <motion.div
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 1 }}
         className="sm:hidden fixed top-1/3 right-0 z-50 rotate-[-90deg] origin-bottom-right"
-        
       >
         <Link to="/reportInput">
           <motion.div
@@ -179,7 +198,7 @@ export default function Home() {
         </Link>
       </motion.div>
 
-      {/* FAB para abrir o mapa de clínicas — versão mobile */}
+      {/* FAB para abrir o mapa de clínicas — versão mobile (Lógica mantida) */}
       <motion.div
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
@@ -205,15 +224,15 @@ export default function Home() {
         </Link>
       </motion.div>
 
-      {/* Botão Clínicas Desktop */}
+      {/* Botão Clínicas Desktop (Lógica mantida) */}
       <motion.div className="hidden sm:flex fixed z-60 bottom-32 right-8">
         <Link to="/clinicPage">
           <motion.button
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-2 px-6 py-4 rounded-full text-white font-bold text-lg
-                 bg-gradient-to-r from-blue-600 to-teal-500 shadow-lg hover:shadow-xl
-                 transition-all duration-300"
+                bg-gradient-to-r from-blue-600 to-teal-500 shadow-lg hover:shadow-xl
+                transition-all duration-300"
           >
             <MapPin className="w-6 h-6" />
             Clínicas Próximas
@@ -225,9 +244,14 @@ export default function Home() {
       <InstallPwaCard />
 
       <footer
-        className={`w-full text-center py-4 text-xs shadow-inner transition-colors duration-300 ${darkMode ? "bg-gray-900 text-gray-200" : "bg-[#004E64] text-gray-100"}`}
+        className={`w-full text-center py-4 text-xs shadow-inner transition-colors duration-300 ${
+          darkMode
+            ? "bg-gray-900 text-gray-200"
+            : "bg-[#004E64] text-gray-100"
+        }`}
       >
-        &copy; {new Date().getFullYear()} oBomVet — Plataforma de Emergências Veterinárias
+        &copy; {new Date().getFullYear()} oBomVet — Plataforma de Emergências
+        Veterinárias
       </footer>
     </div>
   );
