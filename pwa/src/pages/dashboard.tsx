@@ -36,7 +36,11 @@ export default function Dashboard() {
       navigate("/");
       return;
     }
-
+console.log("🔑 Token enviado:", token);
+console.log("📡 Requisição para:", `${API_URL}/api/usuarios/${currentUser.id}`);
+useEffect(() => {
+  console.log("Token:", getToken());
+}, []);
     (async () => {
       try {
         const res = await fetch(`${API_URL}/api/usuarios/${currentUser.id}`, {
