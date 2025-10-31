@@ -11,13 +11,13 @@ import {
 
 type UserType = "tutor" | "clinica";
 
-// API URL (Corrigido de volta para import.meta.env)
+// API URL
 const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "SEU_GOOGLE_CLIENT_ID_AQUI";
 
 /**
- * Função de geocoding (movida para fora do componente)
+ * Função de geocoding
  */
 async function getCoordinates(endereco: string): Promise<string | null> {
   try {
@@ -27,9 +27,7 @@ async function getCoordinates(endereco: string): Promise<string | null> {
     const res = await fetch(url);
     const data = await res.json();
     if (data && data.length > 0) {
-      // API Nominatim retorna "lat", "lon"
       const { lat, lon } = data[0];
-      // Adaptado ao formato "L:lat,G:lon" (assumindo que seu backend espera isso)
       return `L:${lat},G:${lon}`;
     } else {
       return null;
@@ -77,7 +75,6 @@ export default function Register() {
     setFormData((prev: any) => ({ ...prev, [target.name]: value }));
   }
 
-  // Função para buscar coordenadas do endereço
   async function handleFindCoords() {
     if (!formData.endereco) {
       setError("Por favor, preencha o endereço primeiro.");
@@ -103,39 +100,55 @@ export default function Register() {
     return /\S+@\S+\.\S+/.test(email);
   }
 
-  // Função centralizada para lidar com o sucesso (login ou registo)
   function handleAuthSuccess(message: string = "Ação concluída!") {
     setSuccess(`${message} A redirecionar...`);
     setTimeout(() => {
-      // Após o registo, enviamos para o Login
       navigate("/login");
-    }, 2000); // Espera 2s
+    }, 2000);
   }
 
-  // Handle para registo normal (email/senha)
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     setLoading(true);
 
-    // Validações simples
-    if (!isValidEmail(formData.email)) {
-      setError("Email inválido.");
-      setLoading(false);
-      return;
-    }
-    if (tipo === "tutor" && !isValidCPF(formData.cpf)) {
-      setError("CPF inválido. Deve conter 11 números.");
-      setLoading(false);
-      return;
-    }
-
     try {
+      // Validações
+      if (!isValidEmail(formData.email)) {
+        setError("Email inválido.");
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.telefone_principal || formData.telefone_principal.trim() === "") {
+        setError("O telefone principal é obrigatório.");
+        setLoading(false);
+        return;
+      }
+
+      if (tipo === "tutor") {
+        if (!isValidCPF(formData.cpf)) {
+          setError("CPF inválido. Deve conter 11 números.");
+          setLoading(false);
+          return;
+        }
+        if (!formData.nome_completo || formData.nome_completo.trim() === "") {
+          setError("O nome completo é obrigatório.");
+          setLoading(false);
+          return;
+        }
+      } else {
+        if (!formData.nome_fantasia || formData.nome_fantasia.trim() === "") {
+          setError("O nome fantasia da clínica é obrigatório.");
+          setLoading(false);
+          return;
+        }
+      }
+
       let payload: any = {};
       let localizacao = formData.localizacao;
 
-      // para tutor
       if (tipo === "tutor") {
         payload = {
           name: formData.nome_completo,
@@ -148,8 +161,6 @@ export default function Register() {
           cpf: formData.cpf,
         };
       } else {
-        // clinica
-        // Se a localização não foi preenchida manualmente ou pelo botão, busca agora
         if (!localizacao && formData.endereco) {
           setLoadingCoords(true);
           localizacao = await getCoordinates(formData.endereco);
@@ -157,21 +168,21 @@ export default function Register() {
         }
 
         payload = {
-          name: formData.nome_fantasia, // 'name' deve ser o nome principal
-          nome_completo: formData.nome_fantasia, // Ajustado
+          name: formData.nome_fantasia,
+          nome_completo: formData.nome_fantasia,
           email: formData.email,
           password: formData.password,
           tipo: "clinica",
           cnpj: formData.cnpj || null,
           nome_fantasia: formData.nome_fantasia,
-          razao_social: formData.razao_social || formData.nome_fantasia, // Fallback
+          razao_social: formData.razao_social || formData.nome_fantasia,
           endereco: formData.endereco || "",
           telefone_principal: formData.telefone_principal,
-          telefone_emergencia: formData.telefone_emergencia,
+          telefone_emergencia: formData.telefone_emergencia || null,
           horario_funcionamento: formData.horario_funcionamento,
           disponivel_24h: !!formData.disponivel_24h,
           publica: !!formData.publica,
-          localizacao: localizacao || null, // Envia null se não encontrado
+          localizacao: localizacao || null,
           email_contato: formData.email_contato || formData.email,
         };
       }
@@ -202,14 +213,12 @@ export default function Register() {
     }
   }
 
-  // Handle para o sucesso do login com Google
   async function handleGoogleSuccess(credentialResponse: CredentialResponse) {
     setLoading(true);
     setError("");
     setSuccess("");
 
     try {
-      // Envia o token JWT do Google para o seu backend
       const res = await fetch(`${API_URL}/api/auth/google/callback`, {
         method: "POST",
         headers: {
@@ -221,15 +230,10 @@ export default function Register() {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(
-          data.message || data.error || "Erro na autenticação com Google"
-        );
+        throw new Error(data.message || data.error || "Erro na autenticação com Google");
       }
-      
-      // No registo, não fazemos login automático, apenas informamos o sucesso
-      // O backend deve ter criado o utilizador
-      handleAuthSuccess("Conta Google vinculada com sucesso!");
 
+      handleAuthSuccess("Conta Google vinculada com sucesso!");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -242,7 +246,6 @@ export default function Register() {
   }
 
   return (
-    // O GoogleOAuthProvider deve envolver o seu componente
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <motion.div
         className="flex min-h-screen bg-gradient-to-br from-[#004E64] to-[#25A18E] items-center justify-center p-4 sm:p-6"
@@ -269,7 +272,6 @@ export default function Register() {
             Crie sua conta
           </h1>
 
-          {/* Mensagens de Erro/Sucesso */}
           {error && (
             <motion.p
               className="text-red-600 mb-4 text-center bg-red-50 border border-red-200 rounded-lg p-3"
@@ -306,7 +308,6 @@ export default function Register() {
               </select>
             </div>
 
-            {/* Google Login (Apenas para Tutor) */}
             {tipo === "tutor" && (
               <>
                 <div className="pt-2">
@@ -314,14 +315,12 @@ export default function Register() {
                     onSuccess={handleGoogleSuccess}
                     onError={handleGoogleError}
                     useOneTap
-                    // width="100%" // <-- REMOVIDO: Causava aviso. O botão adapta-se ao container.
                     theme="outline"
                     size="large"
                     shape="pill"
                     text="continue_with"
                   />
                 </div>
-                {/* Divisor "OU" */}
                 <div className="flex items-center pt-2">
                   <div className="flex-grow border-t border-gray-300"></div>
                   <span className="flex-shrink mx-4 text-gray-500 text-sm">
@@ -332,13 +331,11 @@ export default function Register() {
               </>
             )}
 
-            {/* Campos Comuns */}
+            {/* Campos comuns */}
             <input
               type="email"
               name="email"
-              placeholder={
-                tipo === "tutor" ? "Seu Email" : "Email principal da clínica"
-              }
+              placeholder={tipo === "tutor" ? "Seu Email" : "Email principal da clínica"}
               value={formData.email}
               onChange={handleChange}
               className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
@@ -356,7 +353,7 @@ export default function Register() {
               disabled={loading || !!success}
             />
 
-            {/* Campos de TUTOR */}
+            {/* Campos TUTOR */}
             {tipo === "tutor" && (
               <>
                 <input
@@ -377,8 +374,8 @@ export default function Register() {
                   onChange={handleChange}
                   className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
                   required
-                  disabled={loading || !!success}
                   maxLength={11}
+                  disabled={loading || !!success}
                 />
                 <input
                   type="tel"
@@ -402,7 +399,7 @@ export default function Register() {
               </>
             )}
 
-            {/* Campos de CLÍNICA */}
+            {/* Campos CLÍNICA */}
             {tipo === "clinica" && (
               <>
                 <input
@@ -448,7 +445,7 @@ export default function Register() {
                   placeholder="Coordenadas (Ex: L:-23.1,G:-47.2) (opcional)"
                   value={formData.localizacao}
                   onChange={handleChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A1f-8]"
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
                   disabled={loading || !!success}
                 />
                 <button
@@ -458,9 +455,7 @@ export default function Register() {
                   className="w-full p-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-all flex items-center justify-center gap-2"
                 >
                   <MapPin size={16} />
-                  {loadingCoords
-                    ? "A buscar..."
-                    : "Buscar coordenadas pelo endereço"}
+                  {loadingCoords ? "A buscar..." : "Buscar coordenadas pelo endereço"}
                 </button>
                 <input
                   type="tel"
@@ -487,7 +482,7 @@ export default function Register() {
                   placeholder="Email de contato (opcional)"
                   value={formData.email_contato}
                   onChange={handleChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A1E]"
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25A18E]"
                   disabled={loading || !!success}
                 />
                 <label className="flex items-center gap-2 text-gray-700">
@@ -521,24 +516,12 @@ export default function Register() {
               type="submit"
               disabled={loading || !!success}
               className={`w-full p-3 rounded-lg font-semibold text-white transition-all
-              ${
-                loading
-                  ? "bg-gray-400"
-                  : success
-                  ? "bg-green-600"
-                  : "bg-[#25A18E] hover:bg-[#208B7C]"
-              }
-            `}
+              ${loading ? "bg-gray-400" : success ? "bg-green-600" : "bg-[#25A18E] hover:bg-[#208B7C]"}`}
             >
-              {loading
-                ? "A cadastrar..."
-                : success
-                ? "Sucesso!"
-                : "Cadastrar"}
+              {loading ? "A cadastrar..." : success ? "Sucesso!" : "Cadastrar"}
             </motion.button>
           </form>
 
-          {/* Link para Login */}
           <p className="mt-6 text-center text-sm text-gray-700">
             Já tem conta?{" "}
             <Link
@@ -553,4 +536,3 @@ export default function Register() {
     </GoogleOAuthProvider>
   );
 }
-

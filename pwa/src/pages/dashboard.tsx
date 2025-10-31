@@ -36,6 +36,8 @@ export default function Dashboard() {
       navigate("/");
       return;
     }
+console.log("🔑 Token enviado:", token);
+console.log("📡 Requisição para:", `${API_URL}/api/usuarios/${currentUser.id}`);
 
     (async () => {
       try {
