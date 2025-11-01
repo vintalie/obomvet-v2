@@ -11,7 +11,7 @@ import {
   Building,
 } from "lucide-react";
 import SuccessModal from "../components/emergency/SuccessModal";
-import { useEmergencyReport } from "../hooks"; // <-- Única importação de hook
+import { useEmergencyReport } from "../hooks";
 import { EmergencyForm, URGENCIAS } from "../types/emergency.types";
 
 export default function ReportInput() {
