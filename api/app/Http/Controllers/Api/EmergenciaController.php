@@ -34,6 +34,11 @@ class EmergenciaController extends Controller
         return $earthRadius * $c;
     }
 
+    /**
+     * Função privada para calcular a distância Haversine em km.
+     */
+    
+
     public function index()
     {
         return Emergencia::all();
