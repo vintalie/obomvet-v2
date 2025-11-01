@@ -1,3 +1,4 @@
+import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/login";
 import Register from "./pages/register";
@@ -19,7 +20,15 @@ function PrivateRoute({ children }: { children: JSX.Element }) {
   return token ? children : <Navigate to="/" />;
 }
 
+
 export default function App() {
+  React.useEffect(() => {
+  if ('Notification' in window) {
+    Notification.requestPermission().then(permission => {
+      console.log('Permissão de notificações:', permission);
+    });
+  }
+}, []);
   return (
     <DarkModeProvider>
     <Router>
