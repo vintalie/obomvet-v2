@@ -11,20 +11,16 @@ class Usuario extends Authenticatable implements JWTSubject
 
     protected $fillable = [
     'name',
-    'nome_completo',
     'email',
     'password',
     'tipo',
-    'cpf',
-    'cnpj',
-    'nome_fantasia',
-    'razao_social',
-    'endereco',
-    'telefone_principal',
-    'telefone_alternativo',
-];
+    'push_subscription',
+    ];
 
-
+    protected $casts = [
+        // outros casts...
+        'push_subscription' => 'array',
+    ];
     protected $hidden = [
         'password',
         'remember_token',

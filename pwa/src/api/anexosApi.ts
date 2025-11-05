@@ -1,7 +1,7 @@
 // emergenciesApi.ts
 import axios, { AxiosInstance } from "axios";
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api'; // Substitua pela URL real da sua API
+const API_BASE_URL = 'http://localhost:8000/api'; // Substitua pela URL real da sua API
 
 // Configuração do Axios com autenticação via Sanctum
 const api: AxiosInstance = axios.create({

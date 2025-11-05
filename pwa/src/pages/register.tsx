@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
+import { registerUser } from "../services/AuthService";
+import { getCoordinates } from "../services/GeoServices";
+import { isValidCPF, isValidEmail } from "../services/validationService";
+
 type UserType = "tutor" | "clinica";
 
 export default function Register() {
@@ -29,27 +33,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
-
-  async function getCoordinates(endereco: string): Promise<string | null> {
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        endereco
-      )}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        const { lat, lon } = data[0];
-        return `${lat},${lon}`;
-      } else {
-        return null;
-      }
-    } catch (err) {
-      console.error("Erro ao obter coordenadas:", err);
-      return null;
-    }
-  }
-
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) {
@@ -61,20 +44,11 @@ export default function Register() {
     setFormData((prev: any) => ({ ...prev, [target.name]: value }));
   }
 
-  function isValidCPF(cpf: string) {
-    return cpf.length === 11 && /^\d+$/.test(cpf);
-  }
-
-  function isValidEmail(email: string) {
-    return /\S+@\S+\.\S+/.test(email);
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    // Validações simples
     if (!isValidEmail(formData.email)) {
       setError("Email inválido.");
       setLoading(false);
@@ -89,66 +63,45 @@ export default function Register() {
     try {
       let payload: any = {};
 
-      // para tutor
-if (tipo === "tutor") {
-  payload = {
-    // backend espera 'name'
-    name: formData.nome_completo || "",
-    nome_completo: formData.nome_completo,
-    email: formData.email,
-    password: formData.password,
-    tipo: "tutor",
-    telefone_principal: formData.telefone_principal,
-    telefone_alternativo: formData.telefone_alternativo || null,
-    cpf: formData.cpf,
-  };
-} else {
-  // clinica
-  let localizacao = formData.localizacao;
-  if (!localizacao && formData.endereco) {
-    const coords = await getCoordinates(formData.endereco);
-    localizacao = coords || "0,0";
-  }
-
-  payload = {
-    // backend espera 'name' também
-    name: formData.nome_fantasia || formData.nome_completo || "",
-    nome_completo: formData.nome_completo || formData.nome_fantasia,
-    email: formData.email,
-    password: formData.password,
-    tipo: "clinica",
-    cnpj: formData.cnpj || null,
-    nome_fantasia: formData.nome_fantasia || formData.nome_completo,
-    razao_social: formData.razao_social || formData.nome_completo,
-    endereco: formData.endereco || "",
-    telefone_principal: formData.telefone_principal,
-    telefone_emergencia: formData.telefone_emergencia,
-    horario_funcionamento: formData.horario_funcionamento,
-    // garanta que seja booleano (não string)
-    disponivel_24h: !!formData.disponivel_24h,
-    publica: formData.publica ?? false,
-    localizacao,
-    email_contato: formData.email_contato || formData.email,
-  };
-}
-
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        // Trata erros de validação 422
-        if (response.status === 422 && data.errors) {
-          const firstError = Object.values(data.errors).flat()[0];
-          throw new Error(firstError);
-        } else {
-          throw new Error(data.error || "Erro no cadastro");
+      if (tipo === "tutor") {
+        payload = {
+          name: formData.nome_completo || "",
+          nome_completo: formData.nome_completo,
+          email: formData.email,
+          password: formData.password,
+          tipo: "tutor",
+          telefone_principal: formData.telefone_principal,
+          telefone_alternativo: formData.telefone_alternativo || null,
+          cpf: formData.cpf,
+        };
+      } else {
+        let localizacao = formData.localizacao;
+        if (!localizacao && formData.endereco) {
+          const coords = await getCoordinates(formData.endereco);
+          localizacao = coords || "0,0";
         }
+
+        payload = {
+          name: formData.nome_fantasia || formData.nome_completo || "",
+          nome_completo: formData.nome_completo || formData.nome_fantasia,
+          email: formData.email,
+          password: formData.password,
+          tipo: "clinica",
+          cnpj: formData.cnpj || null,
+          nome_fantasia: formData.nome_fantasia || formData.nome_completo,
+          razao_social: formData.razao_social || formData.nome_completo,
+          endereco: formData.endereco || "",
+          telefone_principal: formData.telefone_principal,
+          telefone_emergencia: formData.telefone_emergencia,
+          horario_funcionamento: formData.horario_funcionamento,
+          disponivel_24h: !!formData.disponivel_24h,
+          publica: formData.publica ?? false,
+          localizacao,
+          email_contato: formData.email_contato || formData.email,
+        };
       }
+
+      await registerUser(payload);
 
       alert("Cadastro realizado com sucesso!");
       navigate("/");

@@ -24,7 +24,7 @@ export default function EmergenciasClinica() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Token de autenticação não encontrado.");
 
-      const res = await fetch("http://127.0.0.1:8000/api/clinica/emergencias", {
+      const res = await fetch("http://localhost:8000/api/clinica/emergencias", {
         headers: { Authorization: `Bearer ${token}` },
       });
 

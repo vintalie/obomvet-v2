@@ -18,13 +18,14 @@ class NovaEmergencia implements ShouldBroadcast
 
     public function __construct(Emergencia $emergencia)
     {
-         $this->emergencia = $emergencia;
+        $this->emergencia = $emergencia;
     }
 
     public function broadcastOn()
     {
         return new PrivateChannel('clinicas');
     }
+
     public function broadcastAs() 
     { 
         return 'NovaEmergencia'; 

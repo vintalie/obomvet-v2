@@ -74,6 +74,7 @@ class EmergenciaController extends Controller
         // Busca todas as clínicas
         $todasClinicas = Clinica::all();
         if ($todasClinicas->isEmpty()) {
+            //eventualmente precisa retirar isso daqui
             return response()->json(['error' => 'Nenhuma clínica cadastrada no sistema'], 400);
         }
 
@@ -108,6 +109,7 @@ class EmergenciaController extends Controller
         }
 
         if (!$clinicaAlvo) {
+            //e isso daqui também
             return response()->json(['error' => 'Não foi possível atribuir uma clínica'], 500);
         }
 
@@ -117,7 +119,20 @@ class EmergenciaController extends Controller
         unset($validated['location']);
 
         $emergencia = Emergencia::create($validated);
+        
         NovaEmergencia::dispatch($emergencia);
+                // if (!$clinicaAlvo) {
+
+        //     return response()->json([
+        //         'emergencia' => $emergencia,
+        //     ], 201);
+        // }else{
+        //     $validated['clinica_id'] = $clinicaAlvo->id;
+        //     return response()->json([
+        //         'emergencia' => $emergencia,
+        //         'clinica' => $clinicaAlvo
+        //     ], 201);
+        // }
         return response()->json([
             'emergencia' => $emergencia,
             'clinica' => $clinicaAlvo

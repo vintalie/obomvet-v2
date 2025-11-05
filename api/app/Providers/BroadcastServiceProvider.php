@@ -6,6 +6,11 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Broadcast;
 class BroadcastServiceProvider extends ServiceProvider
 {
+    protected $listen = [
+        \App\Events\NovaEmergencia::class => [
+            \App\Listeners\EnviarNotificacaoEmergencia::class,
+        ],
+    ];
     /**
      * Register services.
      */

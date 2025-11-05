@@ -12,7 +12,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 );
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
-    .then(() => console.log('Service Worker registrado!'))
+  navigator.serviceWorker.register(`${import.meta.env.VITE_PWA_URL}/sw.js`)
+    .then((registration) => console.log('Service Worker registrado:', registration))
     .catch((err) => console.error('Erro ao registrar SW:', err));
 }

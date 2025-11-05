@@ -68,15 +68,10 @@ class AuthController extends Controller
 
             // Cria usuário
             $user = Usuario::create([
-    'name' => $validated['name'],
-    'nome_completo' => $validated['nome_completo'] ?? $validated['name'],
-    'email' => $validated['email'],
-    'password' => Hash::make($validated['password']),
-    'tipo' => $validated['tipo'],
-    'cpf' => $validated['cpf'] ?? null,
-    'cnpj' => $validated['cnpj'] ?? null,
-    'telefone_principal' => $validated['telefone_principal'] ?? '',
-    'telefone_alternativo' => $validated['telefone_alternativo'] ?? null,
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'tipo' => $validated['tipo'],
             ]);
 
 

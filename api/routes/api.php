@@ -37,8 +37,8 @@ Route::middleware('throttle:5,1')->group(function () {
 
 
 Route::get('/clinicas-publicas', [ClinicaController::class, 'indexPublic']);
-Route::post('/emergencias', [EmergenciaController::class, 'store']);
-Route::get('/emergencias', [EmergenciaController::class, 'store']);
+Route::apiResource('emergencias', EmergenciaController::class);
+
 
 // ------------------------
 // ROTAS PROTEGIDAS (JWT)
@@ -110,13 +110,13 @@ Route::middleware('auth:api')->group(function () {
         );
     });
 
-    // Email verification
-    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-        $request->fulfill();
-        return response()->json(['message' => 'E-mail verificado com sucesso!']);
-    })->middleware(['auth:sanctum', 'signed'])->name('verification.verify');
 });
 
+// Email verification
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+    return response()->json(['message' => 'E-mail verificado com sucesso!']);
+})->middleware(['auth:sanctum', 'signed'])->name('verification.verify');
 // Rota para reenviar link
 Route::post('/email/resend', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
