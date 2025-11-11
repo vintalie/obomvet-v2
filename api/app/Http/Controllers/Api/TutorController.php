@@ -12,7 +12,8 @@ class TutorController extends Controller
     {
         // Aplica políticas de autorização nos métodos padrões (exceto métodos customizados)
         $this->authorizeResource(Tutor::class, 'tutor', [
-            'except' => ['getByUsuario', 'getPets', 'getEmergencias']
+            // ✅ CORREÇÃO: Adicionado 'meu' às exceções
+            'except' => ['getByUsuario', 'getPets', 'getEmergencias', 'meu']
         ]);
     }
 
@@ -62,6 +63,44 @@ class TutorController extends Controller
         return response()->noContent();
     }
 
+    // Atualizar tutor usando token anônimo
+    public function updateWithToken(Request $request, Tutor $tutor)
+    {
+        $token = $request->query('token') ?? $request->input('token');
+        if (!$token || $tutor->anonymous_edit_token !== $token) {
+            return response()->json(['error' => 'Token inválido'], 403);
+        }
+
+        if ($tutor->anonymous_edit_token_expires_at && now()->greaterThan($tutor->anonymous_edit_token_expires_at)) {
+            return response()->json(['error' => 'Token expirado'], 403);
+        }
+
+        $data = $request->validate([
+            'nome' => 'sometimes|required|string|max:255',
+            'telefone' => 'sometimes|nullable|string|max:20',
+            'endereco' => 'sometimes|nullable|string|max:255',
+        ]);
+
+        $tutor->update($data);
+        return response()->json($tutor);
+    }
+
+    // Deletar tutor usando token anônimo
+    public function destroyWithToken(Request $request, Tutor $tutor)
+    {
+        $token = $request->query('token') ?? $request->input('token');
+        if (!$token || $tutor->anonymous_edit_token !== $token) {
+            return response()->json(['error' => 'Token inválido'], 403);
+        }
+
+        if ($tutor->anonymous_edit_token_expires_at && now()->greaterThan($tutor->anonymous_edit_token_expires_at)) {
+            return response()->json(['error' => 'Token expirado'], 403);
+        }
+
+        $tutor->delete();
+        return response()->noContent();
+    }
+
     // Retorna pets do tutor
     public function getPets(Tutor $tutor)
     {
@@ -97,6 +136,28 @@ class TutorController extends Controller
 
         if (!$tutor) {
             return response()->json(['message' => 'Tutor não encontrado'], 404);
+        }
+
+        return response()->json($tutor);
+    }
+    
+    // ✅ NOVO MÉTODO
+    /**
+     * Retorna os dados do tutor logado (para o dashboard e hooks).
+     * ROTA: GET /tutor/meu
+     */
+    public function meu(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || !$user->tutor) {
+            return response()->json(['error' => 'Usuário não vinculado a um perfil de tutor.'], 403);
+        }
+        
+        // Carrega o tutor com seus pets e emergências
+        $tutor = $user->tutor()->with(['pets', 'emergencias'])->first();
+        
+        if (!$tutor) {
+             return response()->json(['error' => 'Perfil de tutor não encontrado.'], 404);
         }
 
         return response()->json($tutor);

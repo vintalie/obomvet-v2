@@ -1,602 +1,802 @@
-import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar"; 
+import { useState, useEffect } from "react";
+import Navbar from "../components/Navbar";
 import {
-  Mic,
-  Square,
-  PawPrint,
-  Loader2,
-  AlertTriangle,
-  CheckCircle2,
-  MapPin, // Ícone para o botão de rota
-  Home,   // Ícone para Domicílio
-  Building, // Ícone para Clínica
+  Mic,
+  Square,
+  PawPrint,
+  Loader2,
+  AlertTriangle,
+  Home,
+  Building,
+  User,
+  Mail,
+  Phone,
+  Zap,
+  ArrowRight,
+  Sparkles,
+  X,
+  Send,
+  MessageSquare,
+  ClipboardList,
+  Siren,
+  Wrench,
+  CheckCircle
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import ClinicSelectModal from "../components/emergency/ClinicSelectModal";
+import { useEmergencyReport } from "../hooks";
+import { EmergencyForm, URGENCIAS, Clinica, AIRelatorioFinal } from "../types/emergency.types";
+import { PANIC_BUTTONS } from "../data/panicButtons";
 
-// --- INTERFACES ---
+const FormSection = ({
+  title,
+  step,
+  children,
+}: {
+  title: string;
+  step: number;
+  children: React.ReactNode;
+}) => (
+  <motion.div
+    className="bg-white rounded-xl shadow-md border border-gray-100 p-6 overflow-hidden"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: step * 0.1, duration: 0.3 }}
+  >
+    <h2 className="text-lg font-semibold text-[#004E64] mb-4 flex items-center gap-2">
+      <span className="flex items-center justify-center w-6 h-6 bg-[#25A18E] text-white rounded-full text-sm font-bold">
+        {step}
+      </span>
+      {title}
+    </h2>
+    <div className="space-y-4">{children}</div>
+  </motion.div>
+);
 
-interface Location {
-  latitude: number;
-  longitude: number;
-}
+const FormInput = ({
+  id,
+  label,
+  icon,
+  ...props
+}: {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+} & React.InputHTMLAttributes<HTMLInputElement>) => (
+  <div>
+    <label
+      htmlFor={id}
+      className="block text-sm font-medium text-gray-700 mb-1"
+    >
+      {label}
+    </label>
+    <div className="relative">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        {icon}
+      </div>
+      <input
+        id={id}
+        {...props}
+        className="w-full p-2.5 pl-10 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[#25A18E]/50 focus:border-[#25A18E] transition"
+      />
+    </div>
+  </div>
+);
 
-interface EmergencyForm {
-  pet_id?: string;
-  nome_pet?: string;
-  descricao_sintomas: string;
-  nivel_urgencia: "baixa" | "media" | "alta" | "critica";
-}
+const LoadingOverlay = ({ status }: { status: string | null }) => {
+  const [progressText, setProgressText] = useState("Aguarde...");
 
-interface AutofillResponse {
-  preenchidos?: Partial<EmergencyForm>;
-  faltando?: string[];
-}
-
-interface Clinica {
-  id: number;
-  nome_fantasia: string;
-  telefone_principal: string;
-  endereco?: string;
-  localizacao?: string; // Esperado como "latitude,longitude" vindo do backend
-}
-
-type VisitaTipo = "clinica" | "domicilio";
-
-const URGENCIAS = ["baixa", "media", "alta", "critica"] as const;
-
-<Navbar />
-
-
-export default function ReportInput() {
-  const navigate = useNavigate();
-    
-
-  const [formData, setFormData] = useState<EmergencyForm>({
-    descricao_sintomas: "",
-    nivel_urgencia: "media",
-  });
-
-  const [pets, setPets] = useState<{ id: string; nome: string }[]>([]);
-  const [token, setToken] = useState<string | null>(null);
-
-  const [isRecording, setIsRecording] = useState(false);
-  const [textInput, setTextInput] = useState("");
-  const [transcribedText, setTranscribedText] = useState("");
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [aiResponse, setAiResponse] = useState<AutofillResponse | null>(null);
-  const [missingFields, setMissingFields] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null); // Permitir null
-  const [report, setReport] = useState<string | null>(null);
-  const [clinica, setClinica] = useState<Clinica | null>(null);
-
-  const [location, setLocation] = useState<Location | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-
-  // *** Mantém o tipo de visita usado no último envio ***
-  const [lastVisitaTipo, setLastVisitaTipo] = useState<VisitaTipo | null>(null);
-  const [visitaTipo, setVisitaTipo] = useState<VisitaTipo | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  // ==== CHECAR LOGIN, PEGAR PETS E LOCALIZAÇÃO ====
-  useEffect(() => {
-    const t = localStorage.getItem("token");
-    setToken(t);
-
-    if (t) {
-      fetch("http://localhost:8000/api/pets", {
-        headers: { Authorization: `Bearer ${t}` },
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error(`Falha ao buscar pets (${res.status})`);
-          return res.json();
-        })
-        .then((data) => {
-          console.log("Pets recebidos:", data);
-          if (Array.isArray(data)) {
-            const formattedPets = data.map(pet => ({ ...pet, id: String(pet.id) }));
-            setPets(formattedPets);
-          } else {
-            console.warn("Resposta da API de pets não é um array:", data);
-          }
-        })
-        .catch((err) => {
-          console.error("Erro ao buscar pets:", err);
-        });
-    } else {
-      console.log("Nenhum token encontrado, não buscará pets.");
+  useEffect(() => {
+    if (status === "analisando") {
+      setProgressText("Analisando sintomas...");
+      const t1 = setTimeout(() => setProgressText("Consultando IA veterinária..."), 2000);
+      const t2 = setTimeout(() => setProgressText("Gerando relatório..."), 4000);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    } 
+    if (status === "enviando") {
+      setProgressText("Enviando seu relatório...");
+      const t1 = setTimeout(() => setProgressText("Buscando a clínica 24h mais próxima..."), 1500);
+      const t2 = setTimeout(() => setProgressText("Notificando a clínica..."), 3000);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
+  }, [status]);
 
-    // Pega a localização
-    if (navigator.geolocation) {
-      setLocationError("Obtendo sua localização..."); // Mensagem mais curta
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log("Localização obtida:", position.coords);
-          setLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-          setLocationError(null);
-        },
-        (err) => {
-          console.warn("Erro ao obter geolocalização:", err.code, err.message);
-          let errorMsg = "Não foi possível obter sua localização.";
-          if (err.code === 1) errorMsg = "Permissão de localização negada.";
-          else if (err.code === 2) errorMsg = "Sua localização não está disponível.";
-          else if (err.code === 3) errorMsg = "Tempo esgotado ao obter localização.";
-          setLocationError(errorMsg);
-        },
-        { timeout: 15000, enableHighAccuracy: true }
-      );
-    } else {
-      setLocationError("Geolocalização não suportada.");
-    }
-  }, []);
+  return (
+    <motion.div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4 text-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <div className="bg-white p-8 sm:p-12 rounded-2xl shadow-xl max-w-md w-full">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-16 h-16 border-4 border-[#25A18E] border-t-transparent rounded-full mx-auto"
+        />
+        <h2 className="text-2xl font-bold text-[#004E64] mt-6 mb-3">
+          Por favor, aguarde...
+        </h2>
+        <p className="text-lg text-gray-700">
+          {status === "analisando" ? "Nossa IA está analisando o caso." : "Estamos processando sua emergência."}
+        </p>
+        <p className="text-base text-[#208B7C] font-semibold mt-4 h-12">
+          {progressText}
+        </p>
+      </div>
+    </motion.div>
+  );
+};
 
-  // ==== SINCRONIZAR TEXTO TRANSCRITO ====
-  useEffect(() => {
-    if (transcribedText && textInput !== transcribedText) {
-      console.log("Sincronizando textarea com texto transcrito.");
-      setTextInput(transcribedText);
-      setFormData(prev => ({ ...prev, descricao_sintomas: transcribedText }));
-    }
-  }, [transcribedText, textInput]);
+interface PanicModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (relatorio: string, urgencia: EmergencyForm["nivel_urgencia"]) => void;
+}
 
- // ==== FUNÇÕES DE ÁUDIO (sem mudanças lógicas, apenas logs e limpeza) ====
-  async function startRecording() {
-    setError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const options = { mimeType: 'audio/webm;codecs=opus' };
-      let mediaRecorder;
-      try {
-        mediaRecorder = new MediaRecorder(stream, options);
-      } catch (e) {
-        console.warn("Webm/opus não suportado, fallback:", e);
-        mediaRecorder = new MediaRecorder(stream);
-      }
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) audioChunksRef.current.push(event.data);
-      };
-      mediaRecorder.onstop = async () => {
-        // --- Início do Bloco onstop ---
-        const recorder = mediaRecorderRef.current; // Pega referência atual
-        const mimeType = recorder?.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        const currentChunks = [...audioChunksRef.current]; // Copia chunks antes de limpar
-        audioChunksRef.current = []; // Limpa imediatamente para próxima gravação
+const PanicButtonModal = ({ isOpen, onClose, onSelect }: PanicModalProps) => {
+  if (!isOpen) return null;
 
-        console.log(`Áudio gravado: ${mimeType}, Tamanho: ${audioBlob.size} bytes`);
-        if (audioBlob.size === 0) {
-          setError("Gravação vazia. Verifique microfone.");
-          setIsTranscribing(false);
-          // Libera stream se stop foi chamado por erro e não pelo botão
-          if (streamRef.current) {
-             streamRef.current.getTracks().forEach(track => track.stop());
-             streamRef.current = null;
-          }
-          setIsRecording(false); // Garante que parou
-          return;
-        }
-        const formDataAudio = new FormData();
-        const filename = `audio.${mimeType.split('/')[1].split(';')[0]}`;
-        formDataAudio.append("file", audioBlob, filename);
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-xl font-bold text-[#004E64] flex items-center gap-2">
+                <Zap className="text-yellow-500" />
+                Sugestões Rápidas (Pânico)
+              </h2>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 space-y-3 overflow-y-auto">
+              {PANIC_BUTTONS.map((item) => (
+                <motion.button
+                  key={item.label}
+                  onClick={() => {
+                    onSelect(item.relatorio, item.urgencia);
+                    onClose();
+                  }}
+                  className="w-full flex items-center gap-4 text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-[#25A18E] transition-all"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span className="text-3xl">{item.icon}</span>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-800">{item.label}</h3>
+                    <p className="text-sm text-gray-600 line-clamp-2">{item.relatorio}</p>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
 
-        try {
-          setIsTranscribing(true);
-          setError(null);
-          console.log("Enviando áudio para transcrição...");
-          const res = await fetch("http://localhost:8000/api/ia/transcribe", { /*...*/
-            method: "POST",
-            body: formDataAudio,
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          });
-          if (!res.ok) { /*...*/
-            const errorText = await res.text();
-            throw new Error(`Falha na transcrição (${res.status}): ${errorText || res.statusText}`);
-          }
-          const text = await res.text();
-          console.log("Texto recebido da transcrição:", text);
-          const dataParsed = cleanJson(text);
-          if (dataParsed && typeof dataParsed.text === 'string') {
-            console.log("Transcrição ok:", dataParsed.text);
-            setTranscribedText(dataParsed.text);
-          } else { /*...*/
-            console.warn("JSON inválido/sem 'text':", dataParsed);
-            if (typeof text === 'string' && text.trim().length > 0) {
-                 console.log("Usando texto bruto.");
-                 setTranscribedText(text);
-            } else {
-                 setError("Não foi possível processar texto transcrito.");
-            }
-          }
-        } catch (err: any) { /*...*/
-          console.error("Erro onstop/transcrição:", err);
-          setError(err.message || "Erro ao processar áudio.");
-        } finally {
-          setIsTranscribing(false);
-          // Libera stream ao final do processamento (mesmo com erro)
-           if (streamRef.current) {
-             streamRef.current.getTracks().forEach(track => track.stop());
-             streamRef.current = null;
-             console.log("Tracks de mídia paradas no final do onstop.");
-           }
-          setIsRecording(false); // Garante que parou após processar
-          console.log("Processo onstop finalizado.");
-        }
-        // --- Fim do Bloco onstop ---
-      };
-      mediaRecorder.onerror = (event: Event & { error?: DOMException }) => { /*...*/
-        console.error("Erro no MediaRecorder:", event.error);
-        setError(`Erro gravação: ${event.error?.name || 'desconhecido'}`);
-        stopRecording(); // Chama stopRecording para limpar tudo
-      };
-      mediaRecorder.start();
-      console.log("Gravação iniciada...");
-      setIsRecording(true);
-      setTranscribedText("");
-      setTextInput("");
-      setFormData(prev => ({...prev, descricao_sintomas: ""}));
-      setAiResponse(null);
-      setMissingFields([]);
-    } catch (err: any) { /*...*/
-      console.error("Erro ao iniciar gravação (getUserMedia):", err);
-      let errorMessage = "Não foi possível acessar microfone.";
-      if (err.name === 'NotAllowedError') errorMessage = "Permissão negada.";
-      else if (err.name === 'NotFoundError') errorMessage = "Nenhum microfone encontrado.";
-      else if (err.name === 'NotReadableError') errorMessage = "Microfone em uso.";
-      else if (err.name === 'SecurityError') errorMessage = "Acesso bloqueado (use HTTPS).";
-      else if (err.name === 'AbortError') errorMessage = "Pedido cancelado.";
-      setError(errorMessage);
-    }
-  }
+interface AIReportModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  report: AIRelatorioFinal | null;
+  onConfirmManual: () => void;
+  onConfirmAuto: () => void;
+}
 
+const AIReportModal = ({ isOpen, onClose, report, onConfirmManual, onConfirmAuto }: AIReportModalProps) => {
+  if (!isOpen || !report) return null;
 
-  function stopRecording() {
-    console.log("Tentando parar gravação...");
-    // Verifica se existe e está gravando
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop(); // O onstop será chamado
-      console.log("mediaRecorder.stop() chamado.");
-    } else {
-      console.log("MediaRecorder não estava gravando/não existe.");
-      // Limpa manualmente se não estava gravando
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-        console.log("Tracks paradas manualmente.");
-      }
-      // Garante que estados sejam resetados mesmo sem onstop
-      setIsRecording(false);
-      setIsTranscribing(false); // Reseta transcrição também
-    }
-     // Não reseta isRecording aqui, onstop faz isso
-  }
+  const { emergencia } = report;
+  const urgenciaNivel = emergencia.nivel_urgencia as UrgenciaNivel;
 
-
-  const cleanJson = (text: string): object | null => { /*...*/
-    const cleanedText = text.replace(/^```json\s*|```$/gs, '').trim();
-    try {
-      const parsed = JSON.parse(cleanedText);
-      if (typeof parsed === 'object' && parsed !== null) return parsed;
-      console.warn("JSON parseado não é um objeto:", parsed); return null;
-    } catch (e) {
-      console.warn("Falha inicial ao parsear JSON:", e);
-      const match = cleanedText.match(/\{[\s\S]*\}/);
-      if (match && match[0]) {
-        try {
-          const parsedMatch = JSON.parse(match[0]);
-          if (typeof parsedMatch === 'object' && parsedMatch !== null) return parsedMatch;
-          console.warn("JSON da string não é objeto:", parsedMatch); return null;
-        } catch (e2) {
-          console.error("Falha ao parsear JSON da string:", e2); return null;
-        }
-      }
-      console.error("Nenhum JSON encontrado:", cleanedText); return null;
+  const getUrgencyColor = (nivel: UrgenciaNivel | string) => {
+    switch (nivel) {
+      case "critica": return "bg-red-600 text-white";
+      case "alta": return "bg-red-500 text-white";
+      case "media": return "bg-yellow-500 text-black";
+      case "baixa": return "bg-green-500 text-white";
+      default: return "bg-gray-500 text-white";
     }
   };
 
+  return (
+     <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            className="bg-gray-50 rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-6 border-b bg-white rounded-t-2xl">
+              <h2 className="text-xl font-bold text-[#004E64] flex items-center gap-3">
+                <CheckCircle className="text-green-500" />
+                Análise da IA Concluída
+              </h2>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
 
-  // ==== ANALISAR TEXTO COM IA ====
-  async function analyzeTextWithAI() { /*...*/
-    if (!textInput.trim()) { setError("Digite/grave sintomas antes."); return; }
-    setIsTranscribing(true); setError(null); setAiResponse(null); setMissingFields([]);
-    console.log("Analisando IA:", textInput.trim());
-    try {
-      const headers: HeadersInit = { "Content-Type": "application/json", ...(token && { Authorization: `Bearer ${token}` }) };
-      const res = await fetch("http://localhost:8000/api/ia/analyze", { method: "POST", headers, body: JSON.stringify({ text: textInput.trim() }) });
-      if (!res.ok) { /*...*/
-        const errText = await res.text();
-        throw new Error(`Erro API análise (${res.status}): ${errText || res.statusText}`);
-      }
-      const data = await res.json(); console.log("Resposta bruta IA:", data);
-      const aiContent = data?.choices?.[0]?.message?.content || data?.content || data;
-      const parsed = typeof aiContent === 'string' ? cleanJson(aiContent) : (typeof aiContent === 'object' ? aiContent : null);
-      if (!parsed || typeof parsed !== 'object' || (!('preenchidos' in parsed) && !('faltando' in parsed))) { /*...*/
-        console.error("Resposta IA não é AutofillResponse:", parsed);
-        throw new Error("Formato inesperado da resposta IA.");
-      }
-      const autofillResponse = parsed as AutofillResponse;
-      console.log("Resposta parseada IA:", autofillResponse);
-      setAiResponse(autofillResponse); setMissingFields(autofillResponse.faltando || []);
-      const updates: Partial<EmergencyForm> = {}; const preenchidos = autofillResponse.preenchidos || {};
-      if (preenchidos.descricao_sintomas) updates.descricao_sintomas = preenchidos.descricao_sintomas;
-      if (preenchidos.nivel_urgencia && URGENCIAS.includes(preenchidos.nivel_urgencia)) updates.nivel_urgencia = preenchidos.nivel_urgencia;
-      const suggestedPetId = String(preenchidos.pet_id || ''); const suggestedPetName = preenchidos.nome_pet || '';
-      if (suggestedPetId && pets.some(p => String(p.id) === suggestedPetId)) { updates.pet_id = suggestedPetId; updates.nome_pet = ''; }
-      else if (suggestedPetName) { updates.nome_pet = suggestedPetName; updates.pet_id = ''; }
-      if (Object.keys(updates).length > 0) { console.log("Atualizando form IA:", updates); setFormData((prev) => ({ ...prev, ...updates })); }
-      else { console.log("Nenhuma atualização IA."); }
-    } catch (err: any) { /*...*/
-      console.error("Erro analisar IA:", err); setError(err.message || "Erro conexão IA.");
-    } finally { setIsTranscribing(false); }
-  }
+            <div className="p-6 space-y-6 overflow-y-auto">
+              
+              <div className={`p-4 rounded-lg text-center ${getUrgencyColor(urgenciaNivel)}`}>
+                <h3 className="text-sm font-semibold uppercase tracking-wider">Nível de Urgência Identificado</h3>
+                <p className="text-2xl font-bold capitalize">{urgenciaNivel}</p>
+              </div>
 
-  // ==== ENVIO DO RELATÓRIO ====
-  async function handleSubmit() {
-    setError(null);
-    // Não limpa report/clinica aqui para o modal usar
-    // setReport(null);
-    // setClinica(null);
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <ClipboardList size={20} className="text-[#25A18E]" />
+                  Relatório Detalhado da IA
+                </h3>
+                <p className="text-gray-700 bg-white p-4 rounded-lg border border-gray-200">
+                  {emergencia.relatorio_detalhado_ia}
+                </p>
+              </div>
 
-    // Validações
-    if (!formData.descricao_sintomas.trim()) { setError("Descreva os sintomas."); return; }
-    if (!visitaTipo) { setError("Selecione o tipo de atendimento."); return; }
-    if (!formData.pet_id && !formData.nome_pet?.trim()) { setError("Selecione ou digite o pet."); return; }
-    if (locationError?.startsWith("Obtendo")) { setError("Aguarde obter localização..."); return; }
-    if (visitaTipo === 'domicilio' && !location && !locationError?.includes("negada")) { setError("Localização necessária p/ domicílio."); return; }
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <Wrench size={20} className="text-[#25A18E]" />
+                  Materiais Prováveis
+                </h3>
+                <p className="text-gray-700 bg-white p-4 rounded-lg border border-gray-200">
+                  {emergencia.materiais_provaveis}
+                </p>
+              </div>
 
-    setLoading(true);
-    console.log("Iniciando envio...");
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                  Próximo Passo: Notificar a Clínica
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onConfirmAuto}
+                    className="p-4 bg-red-600 text-white rounded-lg font-semibold text-left flex items-center gap-3 transition-all transform hover:shadow-lg"
+                  >
+                    <Siren size={24} />
+                    <div>
+                      <span className="block">Notificar Mais Próxima</span>
+                      <span className="text-sm font-normal opacity-90">(Automático)</span>
+                    </div>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onConfirmManual}
+                    className="p-4 bg-blue-600 text-white rounded-lg font-semibold text-left flex items-center gap-3 transition-all transform hover:shadow-lg"
+                  >
+                    <Building size={24} />
+                    <div>
+                      <span className="block">Escolher Clínica</span>
+                      <span className="text-sm font-normal opacity-90">(Manual)</span>
+                    </div>
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+            
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
 
-    // *** Guarda o tipo de visita selecionado ANTES de limpar ***
-    const currentVisitaTipo = visitaTipo;
-    setLastVisitaTipo(currentVisitaTipo); // Salva para usar no modal
-
-    try {
-      let petId: string | null = formData.pet_id || null;
-      let createdPet = false;
-
-      if (!petId && formData.nome_pet?.trim() && token) { /* ... criação de pet ... */
-        console.log("Criando pet:", formData.nome_pet.trim());
-        const createPetUrl = "http://localhost:8000/api/pets";
-        const createPetPayload = { nome: formData.nome_pet.trim() };
-        const resPet = await fetch(createPetUrl, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(createPetPayload) });
-        if (!resPet.ok) { const errText = await resPet.text(); throw new Error(`Erro criar pet (${resPet.status}): ${errText}`); }
-        const dataPet = await resPet.json(); console.log("Resp. criar pet:", dataPet);
-        const newPetId = dataPet?.data?.id || dataPet?.id || dataPet?.pet?.id;
-        if (!newPetId) throw new Error("ID novo pet não encontrado.");
-        petId = String(newPetId); createdPet = true; console.log("Pet criado ID:", petId);
-        setPets((prev) => [...prev, { id: petId as string, nome: formData.nome_pet!.trim() }]);
-      } else if (formData.pet_id) { petId = formData.pet_id;
-      } else if (formData.nome_pet?.trim() && !token) { throw new Error("Faça login p/ novo pet."); }
-      if (!petId) throw new Error("ID pet não definido.");
-
-      const nivel_urgencia = formData.nivel_urgencia.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-      const payload: any = {
-        descricao_sintomas: formData.descricao_sintomas.trim(),
-        nivel_urgencia,
-        pet_id: Number(petId),
-        visita_tipo: currentVisitaTipo, // *** Usa a variável guardada ***
-        ...(location && { location: { latitude: location.latitude, longitude: location.longitude } }),
-      };
-      console.log("Payload:", payload);
-
-      const url = "http://localhost:8000/api/emergencias";
-      const headers: HeadersInit = { "Content-Type": "application/json", ...(token && { Authorization: `Bearer ${token}` }) };
-      const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(payload) });
-
-      if (!res.ok) { /* ... tratamento erro ... */
-        const text = await res.text(); console.error(`Erro ${res.status}:`, text);
-        if (res.status === 422) { /*...*/ throw new Error(Object.values(JSON.parse(text).errors || {}).flat()[0] as string || "Erro dados."); }
-        else if (res.status === 401 || res.status === 403) { throw new Error("Não autorizado."); }
-        else { throw new Error(`Erro servidor (${res.status}).`); }
-      }
-
-      const data = await res.json(); console.log("Resp. emergência:", data);
-
-      setReport("Emergência registrada!"); // Mensagem mais curta
-      if (data.clinica) { /* ... formata clinica ... */
-        console.log("Clínica recebida:", data.clinica);
-        const clinicaData = { ...data.clinica, localizacao: (typeof data.clinica.localizacao === 'string' && data.clinica.localizacao.includes(',')) ? data.clinica.localizacao : undefined };
-        console.log("Clínica formatada:", clinicaData); setClinica(clinicaData);
-      } else { console.warn("Nenhuma clínica retornada."); setClinica(null); }
-
-      setShowSuccessModal(true); // Abre modal APÓS setar clinica e report
-
-      // *** LÓGICA DE LIMPEZA MOVIDA PARA closeModal ***
-
-    } catch (err: any) {
-      console.error("Erro handleSubmit:", err);
-      setError(err.message || "Erro inesperado.");
-    } finally {
-      setLoading(false);
-      console.log("Envio finalizado.");
-    }
-  }
-
-  // --- FUNÇÕES DO MODAL ---
-  function closeModal() {
-    setShowSuccessModal(false);
-    console.log("Fechando modal e limpando formulário...");
-    // *** LIMPEZA DO FORMULÁRIO AGORA AQUI ***
-    setFormData({
-      // Mantém pet_id se foi selecionado (não criado)
-      pet_id: pets.some(p => p.id === formData.pet_id) ? formData.pet_id : undefined,
-      descricao_sintomas: "",
-      nivel_urgencia: "media",
-      nome_pet: "",
-    });
-    setTextInput("");
-    setTranscribedText("");
-    setAiResponse(null);
-    setMissingFields([]);
-    setVisitaTipo(null);
-    setLastVisitaTipo(null); // Limpa o tipo de visita guardado
-    setReport(null); // Limpa mensagem de sucesso
-    setClinica(null); // Limpa dados da clínica
-    setError(null); // Limpa erros também
-  }
-
-  function handleAbrirRota() { /* ... (sem mudanças, já estava ok) ... */
-    setError(null);
-    console.log("Abrir rota:", { clinica, location });
-    if (!clinica?.localizacao) { setError("Localização clínica indisponível."); return; }
-    if (!location) { setError("Sua localização indisponível."); return; }
-    const coords = clinica.localizacao.split(',');
-    if (coords.length !== 2 || isNaN(parseFloat(coords[0])) || isNaN(parseFloat(coords[1]))) { setError("Formato localização inválido."); return; }
-    const [clinicLat, clinicLng] = coords;
-    const origin = `${location.latitude},${location.longitude}`;
-    const destination = `${clinicLat},${clinicLng}`;
-    console.log(`Maps: O=${origin}, D=${destination}`);
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-  // ------------------------------
-
-  // ==== JSX ====
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#EAF9F5] via-[#D8F3DC] to-[#C3E5D0] flex flex-col font-sans">
-      <Navbar />
-      <div className="max-w-2xl w-full mx-auto mt-24 sm:mt-28 mb-10 px-4 sm:px-6">
-        <div className="bg-white shadow-lg rounded-2xl border border-gray-200 p-6 sm:p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 sm:w-40 sm:h-40 bg-[#25A18E]/10 rounded-bl-full -z-10" />
-          <div className="flex items-center gap-3 mb-6">
-            <PawPrint className="w-7 h-7 text-[#25A18E]" />
-            <h1 className="text-xl sm:text-2xl font-bold text-[#004E64]">Relato de Emergência</h1>
-          </div>
-
-          {/* Feedbacks */}
-          <div className="space-y-3 mb-4">
-            {isRecording && ( <div className="feedback-box bg-red-50 border-red-200 text-red-600"><Mic className="w-4 h-4 animate-pulse" /> Gravando...</div> )}
-            {isTranscribing && ( <div className="feedback-box bg-blue-50 border-blue-200 text-blue-600"><Loader2 className="w-4 h-4 animate-spin" /> Processando...</div> )}
-            {locationError && ( <div className="feedback-box bg-yellow-100 border-yellow-300 text-yellow-800 items-start"><AlertTriangle className="icon-feedback" /><span>{locationError}</span></div> )}
-            {error && ( <div className="feedback-box bg-red-100 border-red-300 text-red-800 items-start"><AlertTriangle className="icon-feedback" /><span>{error}</span></div> )}
-          <style>{`.feedback-box{display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;padding:0.75rem;border-radius:0.5rem;border-width:1px;}.icon-feedback{width:1.25rem;height:1.25rem;flex-shrink:0;margin-top:0.125rem;}@media (min-width:640px){.icon-feedback{width:1rem;height:1rem;margin-top:0;}}`}</style>
-          </div>
-
-          {/* FORMULÁRIO */}
-          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-5">
-
-            {/* Seção Pet e Urgência */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="petSelect" className="label-form">Pet:</label>
-                {token ? (
-                  <>
-                    <select id="petSelect" value={formData.pet_id || ""} onChange={(e) => { setFormData((p) => ({ ...p, pet_id: e.target.value, nome_pet: "" })); setError(null); }} className="input-form mb-2">
-                      <option value="">Selecione pet</option>
-                      {pets.map((pet) => ( <option key={pet.id} value={pet.id}>{pet.nome}</option> ))}
-                    </select>
-                    <input type="text" placeholder="Ou nome (novo pet)" value={formData.nome_pet || ""} onChange={(e) => { setFormData((p) => ({ ...p, nome_pet: e.target.value, pet_id: "" })); setError(null); }} className="input-form" />
-                  </>
-                ) : (
-                  <input id="petSelect" type="text" placeholder="Nome do pet" value={formData.nome_pet || ""} onChange={(e) => { setFormData((p) => ({ ...p, nome_pet: e.target.value })); setError(null); }} className="input-form" />
-                )}
-              </div>
-              <div>
-                <label htmlFor="urgenciaSelect" className="label-form">Urgência:</label>
-                <select id="urgenciaSelect" value={formData.nivel_urgencia} onChange={(e) => setFormData((p) => ({ ...p, nivel_urgencia: e.target.value as EmergencyForm["nivel_urgencia"] }))} className="input-form">
-                  {URGENCIAS.map((urg) => ( <option key={urg} value={urg}>{urg.charAt(0).toUpperCase() + urg.slice(1)}</option> ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Seleção de Tipo de Visita */}
-            <div>
-              <label className="label-form mb-2">Atendimento:</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button type="button" onClick={() => { setVisitaTipo("clinica"); setError(null); }} className={`button-visita ${visitaTipo === "clinica" ? "button-visita-active" : "button-visita-inactive"}`}><Building size={18} />Na Clínica</button>
-                <button type="button" onClick={() => { setVisitaTipo("domicilio"); setError(null); }} className={`button-visita ${visitaTipo === "domicilio" ? "button-visita-active" : "button-visita-inactive"}`}><Home size={18} />Em Domicílio</button>
-              </div>
-            <style>{`.label-form{display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;color:#4A5568;}.input-form{width:100%;padding:0.5rem;border:1px solid #CBD5E0;border-radius:0.5rem;outline:none;font-size:0.875rem;transition:ring .1s ease-in-out,border-color .1s ease-in-out;}.input-form:focus{ring:2px;ring-offset:0;ring-color:rgba(37,161,142,.5);border-color:#25A18E;}.button-visita{display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:.75rem;border-radius:.5rem;border-width:2px;transition:all .15s ease-in-out;font-size:.875rem;}@media (min-width:640px){.button-visita{font-size:1rem;}}.button-visita-active{border-color:#25A18E;background-color:#EAF9F5;color:#208B7C;font-weight:600;ring:2px;ring-color:rgba(37,161,142,.3);}.button-visita-inactive{border-color:#D1D5DB;background-color:#fff;color:#4B5563;}.button-visita-inactive:hover{background-color:#F9FAFB;border-color:#9CA3AF;}`}</style>
-            </div>
-
-            {/* Descrição dos Sintomas */}
-            <div>
-              <label htmlFor="descricaoSintomas" className="label-form mb-2">Sintomas:</label>
-              <div className="flex flex-wrap gap-3 mb-3">
-                {!isRecording ? ( <button type="button" onClick={startRecording} className="button-action bg-[#25A18E] hover:bg-[#208B7C]"><Mic size={16} /> Gravar</button> )
-                 : ( <button type="button" onClick={stopRecording} className="button-action bg-red-600 hover:bg-red-700"><Square size={16} /> Parar</button> )}
-                <button type="button" onClick={analyzeTextWithAI} className="button-action bg-blue-600 hover:bg-blue-700 disabled:opacity-50" disabled={isTranscribing || !textInput.trim()}>
-                  {isTranscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <PawPrint size={16} />} {isTranscribing ? "Analisando..." : "Analisar IA"}
-                </button>
-             <style>{`.button-action{display:inline-flex;align-items:center;gap:.5rem;color:#fff;padding:.5rem 1rem;border-radius:.5rem;transition:background-color .15s ease-in-out;font-size:.875rem;box-shadow:0 1px 2px 0 rgba(0,0,0,.05);}`}</style>
-              </div>
-              {transcribedText && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 mb-3 text-sm">
-                  <p className="text-xs text-gray-500 mb-1 font-medium">Transcrito:</p>
-                  <p className="text-gray-800">{transcribedText}</p>
-                </div>
-              )}
-              <textarea id="descricaoSintomas" value={textInput} onChange={(e) => { setTextInput(e.target.value); setFormData((p) => ({ ...p, descricao_sintomas: e.target.value })); setError(null); }} placeholder="Descreva os sintomas..." className="input-form h-32 resize-y" required />
-            </div>
-
-            {/* Botão Enviar */}
-            <button type="submit" disabled={loading || isTranscribing || isRecording} className="w-full mt-4 bg-[#25A18E] text-white py-3 px-4 rounded-xl font-semibold hover:bg-[#208B7C] transition duration-150 ease-in-out shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#25A18E] disabled:opacity-60 disabled:cursor-not-allowed">
-              {loading ? ( <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" /> Enviando...</span> ) : ( "Enviar Relatório" )}
-            </button>
-          </form>
-        </div>
-      </div>
-
-      {/* --- MODAL DE SUCESSO --- */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300" onClick={closeModal} >
-          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-xl animate-in fade-in-0 zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()} >
-            {/* Log dentro do Modal */}
-            {console.log("Renderizando Modal:", { lastVisitaTipo, clinica, location })} {/* *** USA lastVisitaTipo *** */}
-            <div className="flex items-center gap-3 mb-4">
-              <CheckCircle2 className="w-8 h-8 text-green-500" />
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Clínica Notificada!</h2>
-            </div>
-
-            {clinica ? (
-              <>
-                <p className="text-gray-600 mb-5 text-sm sm:text-base">
-                  {lastVisitaTipo === "clinica"
-                    ? `Emergência enviada para ${clinica.nome_fantasia}. Dirija-se ao local.`
-                    : `Emergência enviada para ${clinica.nome_fantasia}. Aguarde contacto.`}
-                </p>
-                <div className="bg-gray-100 rounded-lg p-4 mb-6 border border-gray-200 text-sm">
-                  <h3 className="font-semibold text-base text-[#004E64]">{clinica.nome_fantasia}</h3>
-                  {clinica.endereco && ( <p className="text-gray-700 mt-1">{clinica.endereco}</p> )}
-                  <p className="text-gray-700 mt-1">Telefone: {clinica.telefone_principal || "N/A"}</p>
-    {console.log("Clinica.localizacao no modal:", clinica.localizacao)}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                    {/* *** CONDIÇÃO USA lastVisitaTipo *** */}
-                  {lastVisitaTipo === 'clinica' && typeof clinica.localizacao === 'string' && clinica.localizacao.includes(',') && location && (
-                    <button onClick={handleAbrirRota} className="button-modal bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">
-                      <MapPin size={16} /> Abrir Rota
-                    </button>
-                  )}
-                    {/* *** CONDIÇÃO DO BOTÃO FECHAR USA lastVisitaTipo *** */}
-                  <button onClick={closeModal} className={`button-modal bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400 ${!(lastVisitaTipo === 'clinica' && clinica.localizacao && location) ? 'w-full' : ''}`} >
-                    Fechar
-                  </button>
-                  <style>{`.button-modal{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;color:#fff;padding:.625rem 1rem;border-radius:.5rem;font-weight:600;transition:background-color .15s ease-in-out;font-size:.875rem;box-shadow:0 1px 2px 0 rgba(0,0,0,.05);focus:outline-none;focus:ring-2;focus:ring-offset-2;}`}</style>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-gray-600 mb-5 text-sm sm:text-base">{report || "Emergência registrada."}</p>
-                <button onClick={closeModal} className="button-modal w-full bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400" >Fechar</button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+interface AIFollowUpModalProps {
+  isOpen: boolean;
+  question: string | null;
+  onClose: () => void;
+  onSubmit: (response: string) => void;
 }
 
+const AIFollowUpModal = ({ isOpen, question, onClose, onSubmit }: AIFollowUpModalProps) => {
+  const [responseText, setResponseText] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!responseText.trim()) return;
+    onSubmit(responseText);
+    setResponseText("");
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="bg-white rounded-2xl shadow-xl max-w-lg w-full"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-xl font-bold text-[#004E64] flex items-center gap-3">
+                <MessageSquare className="text-blue-500" />
+                A IA precisa de mais detalhes...
+              </h2>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="p-6 space-y-4">
+                <p className="text-lg text-gray-700 font-medium text-center">
+                  "{question}"
+                </p>
+                
+                <textarea
+                  value={responseText}
+                  onChange={(e) => setResponseText(e.target.value)}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[#25A18E]/50 focus:border-[#25A18E] h-24 resize-y"
+                  placeholder="Responda a pergunta da IA aqui..."
+                  required
+                />
+              </div>
+
+              <div className="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-end">
+                <motion.button
+                  type="submit"
+                  disabled={!responseText.trim()}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-md disabled:opacity-50"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Enviar Resposta <Send size={18} />
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default function ReportInput() {
+  const [showClinicModal, setShowClinicModal] = useState(false);
+  const [showPanicModal, setShowPanicModal] = useState(false);
+
+  const [token, setToken] = useState<string | null>(null);
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    setToken(t);
+  }, []);
+
+  const {
+    formData,
+    textInput,
+    visitaTipo,
+    loading,
+    error,
+    location,
+    locationError,
+    pets,
+    isRecording,
+    isTranscribing,
+    aiReportModalOpen,
+    aiFollowUpModalOpen,
+    aiResponse,
+    aiQuestion,
+    setLoading,
+    setFormData,
+    setTextInput,
+    setVisitaTipo,
+    setError,
+    startRecording,
+    stopRecording,
+    analyzeTextWithAI,
+    handleSubmit,
+    closeModal,
+    validateForm,
+    handleFollowUpSubmit,
+    setAiReportModalOpen,
+    setAiFollowUpModalOpen,
+  } = useEmergencyReport(token);
+
+  const handleStartSubmission = () => {
+    if (!validateForm()) return;
+    analyzeTextWithAI(textInput);
+  };
+  
+  const handleConfirmAuto = () => {
+    handleSubmit();
+  };
+  
+  const handleConfirmManual = () => {
+    setAiReportModalOpen(false);
+    setShowClinicModal(true);
+  };
+
+  const handleClinicSelectAndSubmit = (selectedClinic: Clinica) => {
+    setShowClinicModal(false);
+    handleSubmit(selectedClinic.id);
+  };
+
+  const handleQuickReport = (
+    relatorio: string, 
+    urgency: EmergencyForm["nivel_urgencia"]
+  ) => {
+    setTextInput(relatorio);
+    setFormData((p) => ({
+      ...p,
+      descricao_sintomas: relatorio,
+    }));
+    setError(null);
+    document.getElementById("descricaoSintomas")?.focus();
+  };
+
+  const buttonMotionProps = {
+    whileHover: { scale: 1.05 },
+    whileTap: { scale: 0.95 },
+    transition: { type: "spring", stiffness: 400, damping: 15 },
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      <Navbar />
+      
+      <AnimatePresence>
+        {loading && <LoadingOverlay status={loading} />}
+      </AnimatePresence>
+      
+      <div className="max-w-2xl w-full mx-auto mt-24 sm:mt-28 mb-10 px-4 sm:px-6">
+        <motion.div
+          className="text-center mb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <AlertTriangle className="w-9 h-9 text-red-500" />
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#004E64]">
+              Relatório de Emergência
+            </h1>
+          </div>
+          <p className="text-lg text-gray-600">
+            Preencha os dados para notificarmos a clínica mais próxima.
+          </p>
+        </motion.div>
+
+        <div className="space-y-6">
+          <AnimatePresence>
+            {isRecording && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-center gap-2 text-sm p-3 rounded-lg border bg-red-50 border-red-200 text-red-600 font-medium"
+              >
+                <Mic className="w-4 h-4 animate-pulse" /> Gravando áudio...
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {isTranscribing && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-center gap-2 text-sm p-3 rounded-lg border bg-blue-50 border-blue-200 text-blue-700 font-medium"
+              >
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Processando áudio...
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {locationError && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-start gap-2 text-sm p-3 rounded-lg border bg-yellow-100 border-yellow-300 text-yellow-800"
+              >
+                <AlertTriangle className="w-5 h-5 sm:w-4 sm:h-4 flex-shrink-0 mt-0.5 sm:mt-0" />
+                <span>{locationError}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-start gap-2 text-sm p-3 rounded-lg border bg-red-100 border-red-300 text-red-800"
+              >
+                <AlertTriangle className="w-5 h-5 sm:w-4 sm:h-4 flex-shrink-0 mt-0.5 sm:mt-0" />
+                <span>{error}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+            {!token && (
+              <FormSection title="Seus Dados (para Contato)" step={1}>
+                <FormInput
+                  id="tutorNome"
+                  label="Nome Completo*"
+                  icon={<User className="h-4 w-4 text-gray-400" />}
+                  type="text"
+                  placeholder="Seu nome"
+                  value={formData.tutor_nome || ""}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, tutor_nome: e.target.value }))
+                  }
+                  required
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormInput
+                    id="tutorEmail"
+                    label="E-mail*"
+                    icon={<Mail className="h-4 w-4 text-gray-400" />}
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={formData.tutor_email || ""}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, tutor_email: e.target.value }))
+                    }
+                    required
+                  />
+                  <FormInput
+                    id="tutorTelefone"
+                    label="Telefone (WhatsApp)*"
+                    icon={<Phone className="h-4 w-4 text-gray-400" />}
+                    type="tel"
+                    placeholder="(XX) 99999-9999"
+                    value={formData.tutor_telefone || ""}
+                    onChange={(e) =>
+                      setFormData((p) => ({
+                        ...p,
+                        tutor_telefone: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+              </FormSection>
+            )}
+
+            <FormSection title="Dados do Pet" step={token ? 1 : 2}>
+              <div>
+                <label
+                  htmlFor="petSelect"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Pet*
+                </label>
+                {token ? (
+                  <>
+                    <select
+                      id="petSelect"
+                      value={formData.pet_id || ""}
+                      onChange={(e) => {
+                        setFormData((p) => ({
+                          ...p,
+                          pet_id: e.target.value,
+                          nome_pet: "",
+                        }));
+                        setError(null);
+                      }}
+                      className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[#25A18E]/50 focus:border-[#25A18E] mb-2"
+                    >
+                      <option value="">Selecione um pet</option>
+                      {pets.map((pet: any) => (
+                        <option key={pet.id} value={pet.id}>
+                          {pet.nome}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Ou digite o nome (novo pet)"
+                      value={formData.nome_pet || ""}
+                      onChange={(e) => {
+                        setFormData((p) => ({
+                          ...p,
+                          nome_pet: e.target.value,
+                          pet_id: "",
+                        }));
+                        setError(null);
+                      }}
+                      className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[#25A18E]/50 focus:border-[#25A18E]"
+                    />
+                  </>
+                ) : (
+                  <FormInput
+                    id="petSelect"
+                    label=""
+                    icon={<PawPrint className="h-4 w-4 text-gray-400" />}
+                    type="text"
+                    placeholder="Nome do pet"
+                    value={formData.nome_pet || ""}
+                    onChange={(e) => {
+                      setFormData((p) => ({
+                        ...p,
+                        nome_pet: e.target.value,
+                      }));
+                      setError(null);
+                    }}
+                    required
+                  />
+                )}
+              </div>
+            </FormSection>
+
+            <FormSection title="Tipo de Atendimento" step={token ? 2 : 3}>
+              <div className="grid grid-cols-2 gap-3">
+                <motion.button
+                  {...buttonMotionProps}
+                  type="button"
+                  onClick={() => {
+                    setVisitaTipo("clinica");
+                    setError(null);
+                  }}
+                  className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all duration-150 text-base font-medium ${
+                    visitaTipo === "clinica"
+                      ? "border-[#25A18E] bg-[#EAF9F5] text-[#208B7C] font-semibold ring-2 ring-[#25A18E]/30"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                  }`}
+                >
+                  <Building size={18} />
+                  Na Clínica
+                </motion.button>
+                <motion.button
+                  {...buttonMotionProps}
+                  type="button"
+                  onClick={() => {
+                    setVisitaTipo("domicilio");
+                    setError(null);
+                  }}
+                  className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all duration-150 text-base font-medium ${
+                    visitaTipo === "domicilio"
+                      ? "border-[#25A18E] bg-[#EAF9F5] text-[#208B7C] font-semibold ring-2 ring-[#25A1Redocument-your-codeE]/30"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                  }`}
+                >
+                  <Home size={18} />
+                  Em Domicílio
+                </motion.button>
+              </div>
+            </FormSection>
+
+            <FormSection title="Descreva os Sintomas" step={token ? 3 : 4}>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-2">
+                  Não sabe o que escrever?
+                </label>
+                <motion.button
+                  {...buttonMotionProps}
+                  type="button"
+                  onClick={() => setShowPanicModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-yellow-100 text-yellow-800 border border-yellow-200 rounded-lg transition-all hover:bg-yellow-200 hover:text-black hover:shadow-sm"
+                >
+                  <Zap size={14} className="text-yellow-600" /> Ver Sugestões Rápidas (Pânico)
+                </motion.button>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                {!isRecording ? (
+                  <motion.button
+                    {...buttonMotionProps}
+                    type="button"
+                    onClick={startRecording}
+                    className="inline-flex items-center gap-2 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium shadow-sm bg-[#25A18E] hover:bg-[#208B7C]"
+                  >
+                    <Mic size={16} /> Gravar Áudio
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    {...buttonMotionProps}
+                    type="button"
+                    onClick={stopRecording}
+                    className="inline-flex items-center gap-2 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium shadow-sm bg-red-600 hover:bg-red-700 animate-pulse"
+                  >
+                    <Square size={16} /> Parar Gravação
+                  </motion.button>
+                )}
+              </div>
+
+              <textarea
+                id="descricaoSintomas"
+                value={textInput}
+                onChange={(e) => {
+                  setTextInput(e.target.value);
+                  setFormData((p) => ({
+                    ...p,
+                    descricao_sintomas: e.target.value,
+                  }));
+                  setError(null);
+                }}
+                placeholder="Descreva os sintomas ou grave um áudio. A IA irá analisar e criar o relatório."
+                className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[#25A18E]/50 focus:border-[#25A18E] h-32 resize-y"
+                required
+              />
+            </FormSection>
+
+            <motion.button
+              {...buttonMotionProps}
+              type="button"
+              onClick={handleStartSubmission}
+              disabled={loading != null || isTranscribing || isRecording}
+              className="w-full mt-4 bg-red-600 text-white py-3.5 px-4 rounded-xl font-semibold text-lg hover:bg-red-700 transition duration-150 ease-in-out shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Sparkles size={20} /> Analisar e Enviar Relatório
+            </motion.button>
+          </form>
+        </div>
+      </div>
+
+      <ClinicSelectModal
+        isOpen={showClinicModal}
+        onClose={() => setShowClinicModal(false)}
+        onSelect={handleClinicSelectAndSubmit}
+        visitaTipo={visitaTipo ?? "clinica"}
+        userLocation={
+          location ? { lat: location.latitude, lng: location.longitude } : null
+        }
+      />
+
+      <PanicButtonModal
+        isOpen={showPanicModal}
+        onClose={() => setShowPanicModal(false)}
+        onSelect={handleQuickReport}
+      />
+      
+      <AIFollowUpModal
+        isOpen={aiFollowUpModalOpen}
+        question={aiQuestion}
+        onClose={() => {
+          setAiFollowUpModalOpen(false);
+          setLoading(null);
+        }}
+        onSubmit={handleFollowUpSubmit}
+      />
+
+      <AIReportModal
+        isOpen={aiReportModalOpen}
+        onClose={() => {
+          setAiReportModalOpen(false);
+          closeModal();
+        }}
+        report={aiResponse}
+        onConfirmAuto={handleConfirmAuto}
+        onConfirmManual={handleConfirmManual}
+      />
+    </div>
+  );
+}

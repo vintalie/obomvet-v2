@@ -1,3 +1,4 @@
+import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/login";
 import Register from "./pages/register";
@@ -10,8 +11,12 @@ import About from './pages/about';
 import './styles/app.css';
 import { getToken } from './utils/auth';
 import ClinicPage from "./pages/clinicPage";
-import { DarkModeProvider } from "./contexts/DarkModeContext";
+import RegisteredClinicPage from "./pages/registeredClinicPage";
+import { DarkModeProvider } from "./accessibility/DarkModeContext";
 import 'tippy.js/dist/tippy.css';
+// ❌ O import de 'IniciarEmergencia' foi removido
+import AcompanhamentoEmergencia from "./pages/acompanhamentoEmergencia";
+import { useVLibras } from "./accessibility/useVlibras";
 
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
@@ -19,24 +24,45 @@ function PrivateRoute({ children }: { children: JSX.Element }) {
   return token ? children : <Navigate to="/" />;
 }
 
+
 export default function App() {
+  React.useEffect(() => {
+  if ('Notification' in window) {
+    Notification.requestPermission().then(permission => {
+      console.log('Permissão de notificações:', permission);
+    });
+  }
+}, []);
+
+  useVLibras();
+    
+    
+
   return (
     <DarkModeProvider>
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/reportInput" element={<ReportInput />} />
-        <Route path="/features" element={<Features />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/clinicPage" element={<ClinicPage />} />
-        <Route path="/clinicPage" element={<ClinicPage />} />
-        {/* Redireciona qualquer rota desconhecida para a Home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+      <div vw="true" className="enabled">
+        <div vw-access-button="true" className="active"></div>
+        <div vw-plugin-wrapper="true">
+          <div className="vw-plugin-top-wrapper"></div>
+        </div>
+      </div>
+
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          {/* ❌ A rota "/iniciar-emergencia" foi removida */}
+          <Route path="/reportInput" element={<ReportInput />} />
+          <Route path="/emergencia/:id" element={<AcompanhamentoEmergencia />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/clinicPage" element={<ClinicPage />} />
+          <Route path="/registeredClinicPage" element={<RegisteredClinicPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
     </DarkModeProvider>
   );
 }
